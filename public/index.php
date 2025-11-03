@@ -150,12 +150,63 @@
             font-size: 13px;
             line-height: 1.8;
         }
+        
+        .file-requirements {
+            background: #fff3cd;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 8px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .file-requirements p {
+            color: #856404;
+            font-size: 12px;
+            margin: 2px 0;
+        }
+        
+        .warning-box {
+            background: #ffebee;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border-left: 4px solid #d32f2f;
+        }
+        
+        .warning-box h3 {
+            color: #c62828;
+            margin-bottom: 8px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .warning-box ul {
+            margin-left: 20px;
+            color: #b71c1c;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        
+        .warning-box strong {
+            color: #c62828;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📊 ATM Reconciliation System</h1>
         <p class="subtitle">Upload GL and FEP files for automatic reconciliation</p>
+        
+        <div class="warning-box">
+            <h3>⚠️ Important Notice</h3>
+            <ul>
+                <li><strong>Monthly Cycle Only:</strong> Both GL and FEP files must contain transactions from a <strong>single month cycle</strong> only</li>
+                <li>Do not upload files with transactions spanning multiple months</li>
+                <li>Example: Upload January transactions only, February transactions only, etc.</li>
+            </ul>
+        </div>
         
         <div class="info-box">
             <h3>How it works:</h3>
@@ -164,6 +215,12 @@
                 <li>Upload your FEP file (contains transaction records)</li>
                 <li>System will automatically process and reconcile the files</li>
                 <li>Download the processed files and view reconciliation results</li>
+            </ul>
+            <h3 style="margin-top: 12px;">File Requirements:</h3>
+            <ul>
+                <li><strong>Format:</strong> Excel .xlsx only (Excel 2007 or later)</li>
+                <li><strong>Size:</strong> Maximum 1MB per file</li>
+                <li><strong>Note:</strong> Older .xls format is not supported</li>
             </ul>
         </div>
         
@@ -174,9 +231,12 @@
                     <label class="file-input-button" for="gl_file">
                         📁 Choose GL File
                     </label>
-                    <input type="file" id="gl_file" name="gl_file" accept=".xlsx,.xls" required>
+                    <input type="file" id="gl_file" name="gl_file" accept=".xlsx" required>
                 </div>
                 <div class="file-name" id="gl_file_name"></div>
+                <div class="file-requirements">
+                    <p><strong>Requirements:</strong> .xlsx format only | Max 1MB</p>
+                </div>
             </div>
             
             <div class="upload-section">
@@ -185,31 +245,117 @@
                     <label class="file-input-button" for="fep_file">
                         📁 Choose FEP File
                     </label>
-                    <input type="file" id="fep_file" name="fep_file" accept=".xlsx,.xls" required>
+                    <input type="file" id="fep_file" name="fep_file" accept=".xlsx" required>
                 </div>
                 <div class="file-name" id="fep_file_name"></div>
+                <div class="file-requirements">
+                    <p><strong>Requirements:</strong> .xlsx format only | Max 1MB</p>
+                </div>
             </div>
             
             <button type="submit" class="submit-btn" id="submitBtn">
                 🚀 Process Files
             </button>
+            
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
         </form>
     </div>
     
     <script>
-        document.getElementById('gl_file').addEventListener('change', function(e) {
-            const fileName = e.target.files[0]?.name || '';
-            document.getElementById('gl_file_name').textContent = fileName ? '✓ ' + fileName : '';
-        });
+        const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB in bytes
+        const ALLOWED_EXTENSION = '.xlsx';
         
-        document.getElementById('fep_file').addEventListener('change', function(e) {
-            const fileName = e.target.files[0]?.name || '';
-            document.getElementById('fep_file_name').textContent = fileName ? '✓ ' + fileName : '';
-        });
+        function validateFile(file, fieldName) {
+            const errors = [];
+            
+            // Check if file exists
+            if (!file) {
+                errors.push(`${fieldName} is required`);
+                return errors;
+            }
+            
+            // Check file size
+            if (file.size > MAX_FILE_SIZE) {
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                errors.push(`${fieldName} is too large (${sizeMB}MB). Maximum size is 1MB`);
+            }
+            
+            // Check file extension
+            const fileName = file.name.toLowerCase();
+            if (!fileName.endsWith(ALLOWED_EXTENSION)) {
+                errors.push(`${fieldName} must be in .xlsx format (Excel 2007+)`);
+            }
+            
+            return errors;
+        }
         
-        document.getElementById('uploadForm').addEventListener('submit', function() {
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            // Scroll to error
+            errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+        
+        function updateFileName(inputId, displayId) {
+            const input = document.getElementById(inputId);
+            const display = document.getElementById(displayId);
+            
+            input.addEventListener('change', function(e) {
+                hideError();
+                const file = e.target.files[0];
+                
+                if (file) {
+                    const fieldName = inputId === 'gl_file' ? 'GL File' : 'FEP File';
+                    const errors = validateFile(file, fieldName);
+                    
+                    if (errors.length > 0) {
+                        display.textContent = '❌ ' + errors.join(', ');
+                        display.style.color = '#c33';
+                        e.target.value = ''; // Clear invalid file
+                    } else {
+                        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                        display.textContent = `✓ ${file.name} (${sizeMB}MB)`;
+                        display.style.color = '#28a745';
+                    }
+                } else {
+                    display.textContent = '';
+                }
+            });
+        }
+        
+        // Initialize file name displays
+        updateFileName('gl_file', 'gl_file_name');
+        updateFileName('fep_file', 'fep_file_name');
+        
+        // Form submission validation
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            hideError();
+            
+            const glFile = document.getElementById('gl_file').files[0];
+            const fepFile = document.getElementById('fep_file').files[0];
+            
+            // Validate both files
+            const glErrors = validateFile(glFile, 'GL File');
+            const fepErrors = validateFile(fepFile, 'FEP File');
+            
+            const allErrors = [...glErrors, ...fepErrors];
+            
+            if (allErrors.length > 0) {
+                showError('❌ Validation Error: ' + allErrors.join(' | '));
+                return false;
+            }
+            
+            // All validations passed, submit form
             document.getElementById('submitBtn').disabled = true;
             document.getElementById('submitBtn').textContent = '⏳ Processing...';
+            this.submit();
         });
     </script>
 </body>

@@ -68,19 +68,12 @@ AddDefaultCharset UTF-8
 </IfModule>
 
 # -----------------------------------------------------------------------------
-# Recommended PHP settings for uploads and execution. There are 3 common ways
-# PHP is run under Apache:
-# 1) mod_php (apache module) - php_value/php_flag work here
-# 2) CGI / FastCGI (php-cgi / mod_fcgid) - php_value/php_flag generally do NOT work
-# 3) PHP-FPM (via mod_proxy_fcgi) - control via php.ini or .user.ini (preferred)
-#
-# The block below applies when PHP is running as an Apache module (mod_php).
-# If you use PHP-FPM, create a file named `.user.ini` in your project root with
-# matching directives instead (example provided below).
+# PHP settings for uploads and execution
+# Updated for 1MB max file size per upload requirement
 # -----------------------------------------------------------------------------
 <IfModule mod_php.c>
-    php_value upload_max_filesize 50M
-    php_value post_max_size 50M
+    php_value upload_max_filesize 2M
+    php_value post_max_size 3M
     php_value max_execution_time 300
     php_value max_input_time 300
     php_value memory_limit 256M

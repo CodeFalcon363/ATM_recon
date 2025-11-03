@@ -13,18 +13,98 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $errors = [];
 $result = null;
 
+// Configuration
+define('MAX_FILE_SIZE', 1 * 1024 * 1024); // 1MB in bytes
+define('ALLOWED_MIME_TYPES', [
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+]);
+define('ALLOWED_EXTENSIONS', ['xlsx']);
+
+/**
+ * Validate uploaded file
+ */
+function validateUploadedFile($file, $fieldName) {
+    $errors = [];
+    
+    // Check if file was uploaded
+    if (!isset($file) || $file['error'] === UPLOAD_ERR_NO_FILE) {
+        $errors[] = "{$fieldName} is required";
+        return $errors;
+    }
+    
+    // Check for upload errors
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        switch ($file['error']) {
+            case UPLOAD_ERR_INI_SIZE:
+            case UPLOAD_ERR_FORM_SIZE:
+                $errors[] = "{$fieldName} exceeds maximum allowed size";
+                break;
+            case UPLOAD_ERR_PARTIAL:
+                $errors[] = "{$fieldName} was only partially uploaded";
+                break;
+            default:
+                $errors[] = "Error uploading {$fieldName}";
+        }
+        return $errors;
+    }
+    
+    // Check file size (1MB max)
+    if ($file['size'] > MAX_FILE_SIZE) {
+        $sizeMB = round($file['size'] / (1024 * 1024), 2);
+        $errors[] = "{$fieldName} is too large ({$sizeMB}MB). Maximum size is 1MB";
+    }
+    
+    // Check file extension
+    $fileName = $file['name'];
+    $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+    
+    if (!in_array($fileExtension, ALLOWED_EXTENSIONS)) {
+        $errors[] = "{$fieldName} must be in .xlsx format (Excel 2007+). Uploaded: .{$fileExtension}";
+    }
+    
+    // Check MIME type
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mimeType = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    
+    if (!in_array($mimeType, ALLOWED_MIME_TYPES)) {
+        $errors[] = "{$fieldName} has invalid file type. Expected Excel .xlsx format";
+    }
+    
+    // Additional security: Check for actual Excel file signature (magic bytes)
+    $handle = fopen($file['tmp_name'], 'rb');
+    $signature = fread($handle, 4);
+    fclose($handle);
+    
+    // .xlsx files are ZIP archives, check for ZIP signature (PK\x03\x04)
+    if (substr($signature, 0, 2) !== 'PK') {
+        $errors[] = "{$fieldName} does not appear to be a valid Excel file";
+    }
+    
+    return $errors;
+}
+
 try {
     // Validate file uploads
     if (!isset($_FILES['gl_file']) || !isset($_FILES['fep_file'])) {
-        throw new Exception('Both files are required');
+        throw new Exception('Both GL and FEP files are required');
     }
     
-    if ($_FILES['gl_file']['error'] !== UPLOAD_ERR_OK) {
-        throw new Exception('Error uploading GL file');
+    // Validate GL file
+    $glErrors = validateUploadedFile($_FILES['gl_file'], 'GL File');
+    if (!empty($glErrors)) {
+        $errors = array_merge($errors, $glErrors);
     }
     
-    if ($_FILES['fep_file']['error'] !== UPLOAD_ERR_OK) {
-        throw new Exception('Error uploading FEP file');
+    // Validate FEP file
+    $fepErrors = validateUploadedFile($_FILES['fep_file'], 'FEP File');
+    if (!empty($fepErrors)) {
+        $errors = array_merge($errors, $fepErrors);
+    }
+    
+    // If there are validation errors, stop processing
+    if (!empty($errors)) {
+        throw new Exception(implode('<br>', $errors));
     }
     
     // Save uploaded files temporarily
