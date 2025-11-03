@@ -1,0 +1,119 @@
+# Public/.htaccess for excelreconciliation
+# Compatible with PHP 8.4 (mod_php, CGI/FastCGI/PHP-FPM) and common Apache setups
+
+# -----------------------------------------------------------------------------
+# Basic URL rewriting: route requests to index.php when no file or directory exists
+# -----------------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # If your app is served from a subdirectory, set RewriteBase accordingly, e.g.
+    # RewriteBase /excelreconciliation/
+    RewriteBase /
+
+    # Serve existing files/directories directly
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # All other requests go to the front controller
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# -----------------------------------------------------------------------------
+# Security: prevent directory listings and hide sensitive files
+# -----------------------------------------------------------------------------
+Options -Indexes
+
+# Deny access to hidden files (beginning with a dot) and sensitive project files
+<FilesMatch "^(?:\.|composer\.(json|lock)|\.env)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Prevent access to PHP files in parent directories (if AllowOverride permits)
+RewriteCond %{REQUEST_URI} "\.\./"
+RewriteRule .* - [F]
+
+# -----------------------------------------------------------------------------
+# Charset and content-security defaults
+# -----------------------------------------------------------------------------
+AddDefaultCharset UTF-8
+
+<IfModule mod_headers.c>
+    # Basic security headers; adjust as needed for your app
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    # Uncomment/Carefully configure CSP for your app if needed
+    # Header always set Content-Security-Policy "default-src 'self'"
+</IfModule>
+
+# -----------------------------------------------------------------------------
+# Expires / caching for static assets (images, css, js) - optional
+# -----------------------------------------------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType text/javascript "access plus 1 week"
+    ExpiresByType text/html "access plus 600 seconds"
+</IfModule>
+
+# -----------------------------------------------------------------------------
+# Recommended PHP settings for uploads and execution. There are 3 common ways
+# PHP is run under Apache:
+# 1) mod_php (apache module) - php_value/php_flag work here
+# 2) CGI / FastCGI (php-cgi / mod_fcgid) - php_value/php_flag generally do NOT work
+# 3) PHP-FPM (via mod_proxy_fcgi) - control via php.ini or .user.ini (preferred)
+#
+# The block below applies when PHP is running as an Apache module (mod_php).
+# If you use PHP-FPM, create a file named `.user.ini` in your project root with
+# matching directives instead (example provided below).
+# -----------------------------------------------------------------------------
+<IfModule mod_php.c>
+    php_value upload_max_filesize 50M
+    php_value post_max_size 50M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value memory_limit 256M
+    # display_errors should be disabled in production environments
+    # php_flag display_errors Off
+    # php_value error_reporting E_ALL
+</IfModule>
+
+# If your environment uses PHP-FPM / FastCGI, create a `.user.ini` in the project
+# root with the following content (this is honored by PHP-FPM and some CGI setups):
+#
+# upload_max_filesize = 50M
+# post_max_size = 50M
+# max_execution_time = 300
+# max_input_time = 300
+# memory_limit = 256M
+
+# Example: if your host requires explicitly mapping .php to a handler, you might
+# see directives like these (uncomment only if your host instructs you to):
+#
+# For some shared hosts (legacy):
+# AddHandler application/x-httpd-php .php
+#
+# For PHP-FPM via proxy (example; adapt socket path / host:port as required):
+# <IfModule mod_proxy_fcgi.c>
+#     <FilesMatch "\.php$">
+#         SetHandler "proxy:unix:/run/php/php8.4-fpm.sock|fcgi://localhost/"
+#     </FilesMatch>
+# </IfModule>
+
+# -----------------------------------------------------------------------------
+# Server signature (best-effort; may be disallowed by host)
+# -----------------------------------------------------------------------------
+ServerSignature Off
+
+# End of public/.htaccess

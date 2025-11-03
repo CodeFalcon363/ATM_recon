@@ -1,0 +1,65 @@
+# .gitignore for Excel Reconciliation project
+
+# AI-specific files (not for public repos)
+/.github/
+CLAUDE.md
+
+# Backup files
+*_b.php
+*_c.php
+.htaccess_backup
+
+# Exclude development/internal MD files (keep only essential docs)
+BUGFIX_TRANSACTION_MATCHING.md
+CRITICAL_BUGFIX.md
+DUPLICATE_REMOVAL.md
+FILE_ANALYSIS.md
+MULTI_CYCLE_RECONCILIATION.md
+UPGRADE_MULTI_CYCLE.md
+UPGRADE_TRANSACTION_MATCHING.md
+
+# Composer / vendor
+/vendor/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+/.idea/
+/.vscode/
+*.iml
+
+# Node modules
+/node_modules/
+
+# Logs and temp
+logs/
+*.log
+tmp/
+temp/
+.cache/
+
+# Build / distribution
+/build/
+/dist/
+
+# PHPUnit cache
+.phpunit.result.cache
+
+# Excel files uploaded or generated at runtime (optional)
+# If your repo intentionally includes sample xlsx files, remove this line
+*.xlsx
+*.xls
+
+# Avoid committing platform-specific metadata
+*.swp
+*.swo
+
+# Composer lock is generally recommended to commit for apps; not ignored here
+# If you want to ignore it, add /composer.lock
