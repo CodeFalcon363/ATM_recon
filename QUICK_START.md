@@ -29,19 +29,38 @@ This installs:
 cd public
 php -S localhost:8000
 ```
+Then access: `http://localhost:8000`
 
-**Option B: Apache/XAMPP (Production)**
+**Option B: Apache/XAMPP**
+
+Since the application files are in the `public/` folder, you have two options:
+
+**Simple Access (Quick Setup):**
 - Place project in `C:\xampp\htdocs\ATM_recon`
-- Ensure `mod_rewrite` is enabled in Apache
-- Access via `http://localhost/ATM_recon/`
+- Access via `http://localhost/ATM_recon/public/`
+
+**Proper Document Root (Recommended):**
+- Configure Apache's document root to point to the `public/` folder
+- Add to your Apache `httpd.conf` or create a virtual host:
+```apache
+<VirtualHost *:80>
+    ServerName atm-recon.local
+    DocumentRoot "C:/xampp/htdocs/ATM_recon/public"
+    <Directory "C:/xampp/htdocs/ATM_recon/public">
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+```
+- Add `127.0.0.1 atm-recon.local` to your `C:\Windows\System32\drivers\etc\hosts` file
+- Restart Apache and access: `http://atm-recon.local`
 
 ### 3. Access the Application
 
 Open your browser to:
-```
-http://localhost:8000
-```
-(or `http://localhost/ATM_recon/` for Apache)
+- PHP built-in server: `http://localhost:8000`
+- XAMPP (simple): `http://localhost/ATM_recon/public/`
+- XAMPP (virtual host): `http://atm-recon.local`
 
 You'll see the upload form with a modern gradient design.
 

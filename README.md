@@ -75,7 +75,8 @@ http://localhost:8000
 
 1. Place in web directory (e.g., `C:\xampp\htdocs\ATM_recon`)
 2. Ensure Apache `mod_rewrite` is enabled
-3. Configure PHP settings (in `.htaccess` or `.user.ini`):
+3. **Access via:** `http://localhost/ATM_recon/public/` (or configure document root to `public/` folder)
+4. Configure PHP settings (in `.htaccess` or `.user.ini`):
    - `upload_max_filesize = 50M`
    - `post_max_size = 50M`
    - `max_execution_time = 300`
