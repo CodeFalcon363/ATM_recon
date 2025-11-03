@@ -273,7 +273,6 @@ Order matters! Changing it breaks duplicate detection logic.
 
 - Review `README.md` for comprehensive documentation
 - Read `TRANSACTION_MATCHING.md` for detailed matching rules
-- Check `MULTI_CYCLE_RECONCILIATION.md` for multi-cycle logic explanation
 - See `TROUBLESHOOTING.md` for more solutions
 
 ## Need Help?

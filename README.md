@@ -179,13 +179,9 @@ All downloads are memory-optimized Excel files with minimal columns:
 
 ## Documentation
 
-- **[CLAUDE.md](CLAUDE.md)** - AI agent guide for codebase navigation
 - **[QUICK_START.md](QUICK_START.md)** - Quick installation and usage guide
 - **[TRANSACTION_MATCHING.md](TRANSACTION_MATCHING.md)** - Detailed matching rules and RRN extraction
-- **[MULTI_CYCLE_RECONCILIATION.md](MULTI_CYCLE_RECONCILIATION.md)** - Multi-cycle logic explanation
-- **[DUPLICATE_REMOVAL.md](DUPLICATE_REMOVAL.md)** - Duplicate handling logic and rationale
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
-- **[.github/copilot-instructions.md](.github/copilot-instructions.md)** - AI coding assistant guidelines
 
 ## Architecture
 

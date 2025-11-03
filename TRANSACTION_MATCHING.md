@@ -398,7 +398,6 @@ When changing matching rules, follow this checklist:
 3. ✅ Add/update unit tests in `tests/TransactionMatcherTest.php`
 4. ✅ Run full test suite: `./vendor/bin/phpunit`
 5. ✅ Test with real GL/FEP files using `debug_matching.php`
-6. ✅ Update `CLAUDE.md` if architectural patterns change
 
 ## Debugging
 
