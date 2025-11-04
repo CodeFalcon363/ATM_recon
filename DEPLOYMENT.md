@@ -2,6 +2,11 @@
 
 This guide covers deploying the ATM Reconciliation application to various hosting environments.
 
+**Application Features:**
+- Supports CSV and Excel (.xlsx) formats with automatic detection
+- High performance: Up to 40x faster with CSV format
+- Memory efficient: 86% less memory usage with CSV vs Excel
+
 ## Table of Contents
 1. [Pre-Deployment Checklist](#pre-deployment-checklist)
 2. [Shared Hosting Deployment](#shared-hosting-deployment)

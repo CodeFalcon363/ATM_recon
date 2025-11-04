@@ -19,13 +19,17 @@ class GLProcessor
     {
         $this->data = $data;
         
-        // Find the header row (look for "DESCRIPTION" or similar key headers)
+        // Find the header row (look for "DESCRIPTION"/"NARRATIVE" and credit/debit columns)
         $headerRow = 0;
         foreach ($data as $index => $row) {
             $rowStr = strtolower(implode('', $row));
-            if (strpos($rowStr, 'description') !== false && 
-                strpos($rowStr, 'credit') !== false && 
-                strpos($rowStr, 'debit') !== false) {
+            $hasDescription = (strpos($rowStr, 'description') !== false ||
+                              strpos($rowStr, 'narrative') !== false ||
+                              strpos($rowStr, 'narration') !== false);
+            $hasCredit = strpos($rowStr, 'credit') !== false;
+            $hasDebit = strpos($rowStr, 'debit') !== false;
+
+            if ($hasDescription && $hasCredit && $hasDebit) {
                 $headerRow = $index;
                 break;
             }
@@ -42,27 +46,36 @@ class GLProcessor
         // Find Description, Credit, Debit, and Date columns
         foreach ($this->headers as $index => $header) {
             $headerLower = strtolower(trim($header));
-            
-            if (strpos($headerLower, 'description') !== false || 
-                strpos($headerLower, 'narration') !== false) {
-                $this->descriptionColumn = $index;
+
+            // Description column: look for description, narration, or narrative
+            if ($this->descriptionColumn === null) {
+                if (strpos($headerLower, 'description') !== false ||
+                    strpos($headerLower, 'narration') !== false ||
+                    strpos($headerLower, 'narrative') !== false) {
+                    $this->descriptionColumn = $index;
+                }
             }
-            
-            if (strpos($headerLower, 'credit') !== false) {
+
+            // Credit column: prioritize "_amount" over "_count"
+            if (strpos($headerLower, 'credit') !== false &&
+                strpos($headerLower, 'count') === false) {
                 $this->creditColumn = $index;
             }
-            
-            if (strpos($headerLower, 'debit') !== false) {
+
+            // Debit column: prioritize "_amount" over "_count"
+            if (strpos($headerLower, 'debit') !== false &&
+                strpos($headerLower, 'count') === false) {
                 $this->debitColumn = $index;
             }
-            
+
+            // Date column
             if (strpos($headerLower, 'date') !== false) {
                 $this->dateColumn = $index;
             }
         }
-        
+
         if ($this->descriptionColumn === null) {
-            throw new Exception("Description column not found in GL file");
+            throw new Exception("Description column not found in GL file. Headers: " . implode(', ', $this->headers));
         }
     }
     
@@ -368,5 +381,23 @@ class GLProcessor
         } catch (Exception $e) {
             return new DateTime();
         }
+    }
+
+    /**
+     * Get the headers array
+     * @return array
+     */
+    public function getHeaders(): array
+    {
+        return $this->headers;
+    }
+
+    /**
+     * Get the data array (without headers)
+     * @return array
+     */
+    public function getData(): array
+    {
+        return $this->data;
     }
 }

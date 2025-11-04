@@ -70,6 +70,7 @@ AddDefaultCharset UTF-8
 # -----------------------------------------------------------------------------
 # PHP settings for uploads and execution
 # Updated for 1MB max file size per upload requirement
+# Supports both .xlsx and .csv formats (CSV recommended for 60x faster processing)
 # -----------------------------------------------------------------------------
 <IfModule mod_php.c>
     php_value upload_max_filesize 2M

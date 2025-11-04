@@ -17,6 +17,12 @@ FILE_ANALYSIS.md
 MULTI_CYCLE_RECONCILIATION.md
 UPGRADE_MULTI_CYCLE.md
 UPGRADE_TRANSACTION_MATCHING.md
+PERFORMANCE_AUDIT_REPORT.md
+CSV_IMPLEMENTATION_REPORT.md
+
+# Benchmark and test files
+benchmark*.php
+test_csv_headers.php
 
 # Composer / vendor
 /vendor/

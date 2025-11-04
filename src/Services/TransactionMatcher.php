@@ -89,11 +89,12 @@ class TransactionMatcher
     $glNotOnFepCreditTotal = 0.0;
     $glNotOnFepDebitTotal = 0.0;
 
-        // Precompute GL column indices
-        $descriptionIdx = $this->findColumnIndex($this->glHeaders, ['description', 'narration']);
-        $creditIdx = $this->findColumnIndex($this->glHeaders, ['credit']);
-        $debitIdx = $this->findColumnIndex($this->glHeaders, ['debit']);
-        $dateIdx = $this->findColumnIndex($this->glHeaders, ['date']);
+        // Precompute GL column indices (support both XLSX and CSV column names)
+        $descriptionIdx = $this->findColumnIndex($this->glHeaders, ['description', 'narration', 'narrative']);
+        // For credit/debit: prefer columns with "amount" to exclude "count" columns
+        $creditIdx = $this->findColumnIndexPreferring($this->glHeaders, ['credit'], ['amount']);
+        $debitIdx = $this->findColumnIndexPreferring($this->glHeaders, ['debit'], ['amount']);
+        $dateIdx = $this->findColumnIndex($this->glHeaders, ['date', 'transaction_date']);
 
         // Build a GL RRN map to support duplicate checks later and to include full GL rows
         // Also store parsed credit/debit amounts per GL row to detect reversal pairs by opposite-sign columns
@@ -228,32 +229,34 @@ class TransactionMatcher
                     }
 
                     // Method B: credit/debit opposite-column match
+                    // OPTIMIZATION: Replace O(n²) nested loop with O(n) hashmap lookup
+                    // Original: compared all pairs with nested loops
+                    // Optimized: collect values in arrays and check for matches
                     if (!$shouldNill) {
                         $entries = $glRrnMap[$rrn];
-                        $n = count($entries);
-                        for ($i = 0; $i < $n && !$shouldNill; $i++) {
-                            for ($j = $i + 1; $j < $n; $j++) {
-                                $a = $entries[$i];
-                                $b = $entries[$j];
+                        $tol = 0.01;
 
-                                $aCredit = isset($a['credit']) ? $a['credit'] : null;
-                                $aDebit = isset($a['debit']) ? $a['debit'] : null;
-                                $bCredit = isset($b['credit']) ? $b['credit'] : null;
-                                $bDebit = isset($b['debit']) ? $b['debit'] : null;
+                        // Single pass: collect all credit and debit values
+                        $credits = [];
+                        $debits = [];
+                        foreach ($entries as $entry) {
+                            $credit = isset($entry['credit']) ? $entry['credit'] : null;
+                            $debit = isset($entry['debit']) ? $entry['debit'] : null;
 
-                                // Compare numeric equality with small tolerance
-                                $tol = 0.01;
+                            if ($credit !== null && $credit > 0) {
+                                $credits[] = $credit;
+                            }
+                            if ($debit !== null && $debit > 0) {
+                                $debits[] = $debit;
+                            }
+                        }
 
-                                // Case: a credit equals b debit
-                                if ($aCredit !== null && $bDebit !== null && abs($aCredit - $bDebit) < $tol && $aCredit > 0 && $bDebit > 0) {
+                        // Check if any credit matches any debit (with tolerance)
+                        foreach ($credits as $c) {
+                            foreach ($debits as $d) {
+                                if (abs($c - $d) < $tol) {
                                     $shouldNill = true;
-                                    break;
-                                }
-
-                                // Case: a debit equals b credit
-                                if ($aDebit !== null && $bCredit !== null && abs($aDebit - $bCredit) < $tol && $aDebit > 0 && $bCredit > 0) {
-                                    $shouldNill = true;
-                                    break;
+                                    break 2; // Exit both loops
                                 }
                             }
                         }
@@ -665,17 +668,55 @@ class TransactionMatcher
     {
         foreach ($headers as $index => $header) {
             $headerLower = strtolower(trim($header));
-            
+
             foreach ($keywords as $keyword) {
                 if (strpos($headerLower, strtolower($keyword)) !== false) {
                     return $index;
                 }
             }
         }
-        
+
         return null;
     }
-    
+
+    /**
+     * Find column index preferring columns that contain both base keyword and preferring keywords
+     * This helps distinguish "CREDIT_AMOUNT" from "CREDIT_COUNT"
+     */
+    private function findColumnIndexPreferring(array $headers, array $baseKeywords, array $preferKeywords): ?int
+    {
+        // First pass: try to find a column with BOTH base keyword AND prefer keyword
+        foreach ($headers as $index => $header) {
+            $headerLower = strtolower(trim($header));
+
+            foreach ($baseKeywords as $baseKw) {
+                if (strpos($headerLower, strtolower($baseKw)) !== false) {
+                    // This column has the base keyword, check if it has prefer keyword
+                    foreach ($preferKeywords as $preferKw) {
+                        if (strpos($headerLower, strtolower($preferKw)) !== false) {
+                            return $index; // Found perfect match
+                        }
+                    }
+                }
+            }
+        }
+
+        // Second pass: find column with base keyword but exclude "count"
+        foreach ($headers as $index => $header) {
+            $headerLower = strtolower(trim($header));
+
+            foreach ($baseKeywords as $baseKw) {
+                if (strpos($headerLower, strtolower($baseKw)) !== false &&
+                    strpos($headerLower, 'count') === false) {
+                    return $index;
+                }
+            }
+        }
+
+        // Fallback: just find base keyword (backward compatibility)
+        return $this->findColumnIndex($headers, $baseKeywords);
+    }
+
     private function parseAmount(string $amount): float
     {
         // Remove currency symbols, commas, and spaces

@@ -1,12 +1,13 @@
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use App\Services\ExcelReader;
+use App\Services\UniversalFileReader;
 use App\Services\TransactionMatcher;
 
 /**
- * Transaction Matching Debug Tool
+ * Transaction Matching Debug Tool (CSV & Excel)
  * Shows exactly what RRNs are being extracted from GL and FEP
+ * Supports both CSV and Excel formats with automatic detection
  */
 ?>
 <!DOCTYPE html>
@@ -16,41 +17,105 @@ use App\Services\TransactionMatcher;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transaction Matching Debug</title>
     <style>
+        :root {
+            /* Light mode (default) */
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --card-bg: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --border-color: #ddd;
+            --input-bg: #ffffff;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --shadow-hover: rgba(102, 126, 234, 0.4);
+            --section-bg: #f8f9fa;
+            --accent-color: #667eea;
+            --info-bg: #e7f3ff;
+            --info-border: #2196F3;
+            --info-text: #333333;
+            --error-bg: #fee;
+            --error-border: #c33;
+            --error-text: #c33;
+            --table-border: #ddd;
+            --table-header-bg: #667eea;
+            --table-header-text: white;
+            --pre-bg: #f4f4f4;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-gradient-start: #1e293b;
+                --bg-gradient-end: #0f172a;
+                --card-bg: #1e293b;
+                --text-primary: #f1f5f9;
+                --text-secondary: #94a3b8;
+                --border-color: #334155;
+                --input-bg: #0f172a;
+                --shadow-color: rgba(0, 0, 0, 0.5);
+                --shadow-hover: rgba(102, 126, 234, 0.6);
+                --section-bg: #0f172a;
+                --accent-color: #818cf8;
+                --info-bg: #1e3a5f;
+                --info-border: #3b82f6;
+                --info-text: #93c5fd;
+                --error-bg: #7f1d1d;
+                --error-border: #ef4444;
+                --error-text: #fecaca;
+                --table-border: #334155;
+                --table-header-bg: #4338ca;
+                --table-header-text: #e0e7ff;
+                --pre-bg: #0f172a;
+            }
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             min-height: 100vh;
             padding: 20px;
+            transition: background 0.3s ease;
         }
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            background: white;
+            background: var(--card-bg);
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 20px 60px var(--shadow-color);
             padding: 40px;
+            transition: all 0.3s ease;
         }
-        h1 { color: #333; margin-bottom: 30px; }
+        h1 { color: var(--text-primary); margin-bottom: 30px; }
         .upload-form { margin-bottom: 30px; }
-        input[type="file"] { padding: 10px; margin-right: 10px; }
+        input[type="file"] {
+            padding: 10px;
+            margin-right: 10px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
         button {
             padding: 12px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             color: white;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        button:hover { transform: translateY(-2px); }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px var(--shadow-hover);
+        }
         .section {
             margin-bottom: 30px;
             padding: 20px;
-            background: #f8f9fa;
+            background: var(--section-bg);
             border-radius: 12px;
         }
-        h2 { color: #667eea; margin-bottom: 15px; font-size: 20px; }
+        h2 { color: var(--accent-color); margin-bottom: 15px; font-size: 20px; }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -60,43 +125,48 @@ use App\Services\TransactionMatcher;
         th, td {
             padding: 10px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--table-border);
+            color: var(--text-primary);
         }
         th {
-            background: #667eea;
-            color: white;
+            background: var(--table-header-bg);
+            color: var(--table-header-text);
             font-weight: 600;
         }
         .info-box {
-            background: #e7f3ff;
+            background: var(--info-bg);
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
-            border-left: 4px solid #2196F3;
+            border-left: 4px solid var(--info-border);
+            color: var(--info-text);
         }
         .error-box {
-            background: #fee;
-            color: #c33;
+            background: var(--error-bg);
+            color: var(--error-text);
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
-            border-left: 4px solid #c33;
+            border-left: 4px solid var(--error-border);
         }
         pre {
-            background: #f4f4f4;
+            background: var(--pre-bg);
             padding: 10px;
             border-radius: 5px;
             overflow-x: auto;
             font-size: 11px;
+            color: var(--text-primary);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔍 Transaction Matching Debug Tool</h1>
+        <h1>🔍 Transaction Matching Debug Tool (CSV & Excel)</h1>
         <div class="info-box">
             <strong>Purpose:</strong> This tool shows exactly what RRNs are being extracted from both GL and FEP files,
             helping you understand why transactions might not be matching.
+            <br><br>
+            <strong>Supported Formats:</strong> CSV (.csv) and Excel (.xlsx) with automatic detection
             <br><br>
             <strong>Key Matching Rules:</strong>
             <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
@@ -106,68 +176,80 @@ use App\Services\TransactionMatcher;
                 <li><strong>Three-Pass Matching:</strong> Matched transactions, GL found in filtered-out FEP (count only), and truly unmatched</li>
             </ul>
         </div>
-        
+
         <form method="POST" enctype="multipart/form-data" class="upload-form">
-            <input type="file" name="gl_file" accept=".xlsx,.xls" required>
-            <input type="file" name="fep_file" accept=".xlsx,.xls" required>
+            <input type="file" name="gl_file" accept=".csv,.xlsx,.xls" required>
+            <input type="file" name="fep_file" accept=".csv,.xlsx,.xls" required>
             <button type="submit">🔍 Debug Matching</button>
         </form>
         
         <?php
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['gl_file']) && isset($_FILES['fep_file'])) {
             try {
-                // Save uploaded files
-                $glTempPath = sys_get_temp_dir() . '/debug_gl_' . time() . '.xlsx';
-                $fepTempPath = sys_get_temp_dir() . '/debug_fep_' . time() . '.xlsx';
-                
+                // Save uploaded files with proper extensions
+                $glExtension = strtolower(pathinfo($_FILES['gl_file']['name'], PATHINFO_EXTENSION));
+                $fepExtension = strtolower(pathinfo($_FILES['fep_file']['name'], PATHINFO_EXTENSION));
+
+                $glTempPath = sys_get_temp_dir() . '/debug_gl_' . time() . '.' . $glExtension;
+                $fepTempPath = sys_get_temp_dir() . '/debug_fep_' . time() . '.' . $fepExtension;
+
                 move_uploaded_file($_FILES['gl_file']['tmp_name'], $glTempPath);
                 move_uploaded_file($_FILES['fep_file']['tmp_name'], $fepTempPath);
-                
+
+                // Detect formats
+                $glFileType = UniversalFileReader::getFileType($glTempPath);
+                $fepFileType = UniversalFileReader::getFileType($fepTempPath);
+
                 // Read GL file
-                $glReader = new ExcelReader();
+                $glReader = UniversalFileReader::create($glTempPath);
                 $glReader->loadFile($glTempPath);
                 $glDataRaw = $glReader->toArray();
-                
-                // Find GL header row (look for "DESCRIPTION", "CREDIT", "DEBIT")
+
+                // Find GL header row (look for "DESCRIPTION"/"NARRATIVE", "CREDIT", "DEBIT")
                 $glHeaderRow = 0;
                 foreach ($glDataRaw as $index => $row) {
                     $rowStr = strtolower(implode('', $row));
-                    if (strpos($rowStr, 'description') !== false && 
-                        strpos($rowStr, 'credit') !== false && 
+                    $hasDesc = (strpos($rowStr, 'description') !== false ||
+                               strpos($rowStr, 'narrative') !== false ||
+                               strpos($rowStr, 'narration') !== false);
+                    if ($hasDesc &&
+                        strpos($rowStr, 'credit') !== false &&
                         strpos($rowStr, 'debit') !== false) {
                         $glHeaderRow = $index;
                         break;
                     }
                 }
-                
+
                 $glHeaders = $glDataRaw[$glHeaderRow];
                 $glData = array_slice($glDataRaw, $glHeaderRow + 1);
-                
+
                 echo '<div class="info-box">';
+                echo '<strong>GL Format:</strong> ' . strtoupper($glFileType) . '<br>';
                 echo '<strong>GL Header Row Found at Index:</strong> ' . $glHeaderRow . '<br>';
                 echo '<strong>GL Data Rows:</strong> ' . count($glData);
                 echo '</div>';
                 
                 // Read FEP file
-                $fepReader = new ExcelReader();
+                $fepReader = UniversalFileReader::create($fepTempPath);
                 $fepReader->loadFile($fepTempPath);
                 $fepDataRaw = $fepReader->toArray();
-                
+
                 // Find FEP header row (look for "RETRIEVAL" and "RESPONSE")
                 $fepHeaderRow = 0;
                 foreach ($fepDataRaw as $index => $row) {
                     $rowStr = strtolower(implode('', $row));
-                    if (strpos($rowStr, 'retrieval') !== false && 
+                    if (strpos($rowStr, 'retrieval') !== false &&
                         strpos($rowStr, 'response') !== false) {
                         $fepHeaderRow = $index;
                         break;
                     }
                 }
-                
+
                 $fepHeaders = $fepDataRaw[$fepHeaderRow];
                 $fepData = array_slice($fepDataRaw, $fepHeaderRow + 1);
-                
+
                 echo '<div class="info-box">';
+                echo '<strong>FEP Format:</strong> ' . strtoupper($fepFileType) . '<br>';
                 echo '<strong>FEP Header Row Found at Index:</strong> ' . $fepHeaderRow . '<br>';
                 echo '<strong>FEP Data Rows:</strong> ' . count($fepData);
                 echo '</div>';
@@ -193,7 +275,10 @@ use App\Services\TransactionMatcher;
                 
                 $descIdx = null;
                 foreach ($glHeaders as $idx => $header) {
-                    if (stripos($header, 'description') !== false) {
+                    $headerLower = strtolower($header);
+                    if (strpos($headerLower, 'description') !== false ||
+                        strpos($headerLower, 'narrative') !== false ||
+                        strpos($headerLower, 'narration') !== false) {
                         $descIdx = $idx;
                         break;
                     }

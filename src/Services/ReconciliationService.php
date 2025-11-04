@@ -22,8 +22,8 @@ class ReconciliationService
     
     public function process(): ReconciliationResult
     {
-        // Process GL file
-        $glReader = new ExcelReader();
+        // Process GL file - auto-detect CSV or XLSX
+        $glReader = UniversalFileReader::create($this->glFilePath);
         $glReader->loadFile($this->glFilePath)
                  ->clearFormatting();
         
@@ -36,14 +36,16 @@ class ReconciliationService
         error_log("GL Load: " . $loadUnloadData->getLoadAmount() . " at " . $loadUnloadData->getLoadDateTime()->format('Y-m-d H:i:s'));
         error_log("GL Unload: " . $loadUnloadData->getUnloadAmount() . " at " . $loadUnloadData->getUnloadDateTime()->format('Y-m-d H:i:s'));
         
-        // Save cleaned GL file
-        $this->processedGLPath = sys_get_temp_dir() . '/processed_gl_' . time() . '.xlsx';
+        // Save cleaned GL file (same format as input)
+        $glFileType = UniversalFileReader::getFileType($this->glFilePath);
+        $extension = ($glFileType === 'csv') ? '.csv' : '.xlsx';
+        $this->processedGLPath = sys_get_temp_dir() . '/processed_gl_' . time() . $extension;
         $glReader->saveToFile($this->processedGLPath);
     // Free GL reader/spreadsheet to reduce memory
     unset($glReader);
         
-        // Process FEP file
-        $fepReader = new ExcelReader();
+        // Process FEP file - auto-detect CSV or XLSX
+        $fepReader = UniversalFileReader::create($this->fepFilePath);
         $fepReader->loadFile($this->fepFilePath)
                   ->clearFormatting();
         
@@ -94,26 +96,12 @@ class ReconciliationService
         // ===== TRANSACTION-LEVEL MATCHING =====
         // Match individual GL transactions with FEP transactions by RRN
         error_log("Starting transaction-level matching...");
-        
-    // Reuse the already-loaded GL array rather than re-reading the file
-    $glDataRaw = $glData;
-        
-        // Find GL header row (same logic as GLProcessor)
-        $glHeaderRow = 0;
-        foreach ($glDataRaw as $index => $row) {
-            $rowStr = strtolower(implode('', $row));
-            if (strpos($rowStr, 'description') !== false && 
-                strpos($rowStr, 'credit') !== false && 
-                strpos($rowStr, 'debit') !== false) {
-                $glHeaderRow = $index;
-                break;
-            }
-        }
-        
-        $glHeadersForMatching = $glDataRaw[$glHeaderRow];
-        $glDataForMatching = array_slice($glDataRaw, $glHeaderRow + 1);
-        
-        error_log("GL matching data: Header at row $glHeaderRow, " . count($glDataForMatching) . " data rows");
+
+        // Reuse GLProcessor's already-identified headers to avoid duplicate detection
+        $glHeadersForMatching = $glProcessor->getHeaders();
+        $glDataForMatching = $glProcessor->getData();
+
+        error_log("GL matching data: " . count($glDataForMatching) . " data rows");
         
         // Get FEP data (already filtered by FEPProcessor)
         $fepDataForMatching = $fepProcessor->getData();
@@ -166,25 +154,51 @@ class ReconciliationService
     
     private function saveProcessedFEP(FEPProcessor $processor): string
     {
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        
-        // Write headers
+        // Determine output format based on input file type
+        $fepFileType = UniversalFileReader::getFileType($this->fepFilePath);
+        $extension = ($fepFileType === 'csv') ? '.csv' : '.xlsx';
+        $outputPath = sys_get_temp_dir() . '/processed_fep_' . time() . $extension;
+
         $headers = $processor->getHeaders();
-        $sheet->fromArray($headers, null, 'A1');
-        
-        // Write data
         $data = $processor->getData();
-        $rowNum = 2;
-        foreach ($data as $row) {
-            $sheet->fromArray($row, null, 'A' . $rowNum);
-            $rowNum++;
+
+        if ($fepFileType === 'csv') {
+            // Save as CSV (fast)
+            $handle = fopen($outputPath, 'w');
+            
+            // Write headers
+            fputcsv($handle, $headers);
+            
+            // Write data rows, converting DateTime objects to strings
+            foreach ($data as $row) {
+                $rowData = [];
+                foreach ($row as $cell) {
+                    if ($cell instanceof \DateTime) {
+                        $rowData[] = $cell->format('Y-m-d H:i:s');
+                    } else {
+                        $rowData[] = $cell;
+                    }
+                }
+                fputcsv($handle, $rowData);
+            }
+            fclose($handle);
+        } else {
+            // Save as XLSX (slower but needed for Excel compatibility)
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            $sheet->fromArray($headers, null, 'A1');
+
+            $rowNum = 2;
+            foreach ($data as $row) {
+                $sheet->fromArray($row, null, 'A' . $rowNum);
+                $rowNum++;
+            }
+
+            $writer = new Xlsx($spreadsheet);
+            $writer->save($outputPath);
         }
-        
-        $outputPath = sys_get_temp_dir() . '/processed_fep_' . time() . '.xlsx';
-        $writer = new Xlsx($spreadsheet);
-        $writer->save($outputPath);
-        
+
         return $outputPath;
     }
     

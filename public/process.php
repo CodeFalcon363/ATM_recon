@@ -17,8 +17,11 @@ $result = null;
 define('MAX_FILE_SIZE', 1 * 1024 * 1024); // 1MB in bytes
 define('ALLOWED_MIME_TYPES', [
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+    'text/csv', // .csv
+    'text/plain', // .csv (some servers)
+    'application/csv', // .csv (alternate)
 ]);
-define('ALLOWED_EXTENSIONS', ['xlsx']);
+define('ALLOWED_EXTENSIONS', ['xlsx', 'csv']);
 
 /**
  * Validate uploaded file
@@ -59,7 +62,7 @@ function validateUploadedFile($file, $fieldName) {
     $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
     
     if (!in_array($fileExtension, ALLOWED_EXTENSIONS)) {
-        $errors[] = "{$fieldName} must be in .xlsx format (Excel 2007+). Uploaded: .{$fileExtension}";
+        $errors[] = "{$fieldName} must be in .xlsx or .csv format. Uploaded: .{$fileExtension}";
     }
     
     // Check MIME type
@@ -68,17 +71,33 @@ function validateUploadedFile($file, $fieldName) {
     finfo_close($finfo);
     
     if (!in_array($mimeType, ALLOWED_MIME_TYPES)) {
-        $errors[] = "{$fieldName} has invalid file type. Expected Excel .xlsx format";
+        $errors[] = "{$fieldName} has invalid file type. Expected .xlsx or .csv format (got: {$mimeType})";
     }
     
-    // Additional security: Check for actual Excel file signature (magic bytes)
+    // Additional security: Verify file signature based on extension
     $handle = fopen($file['tmp_name'], 'rb');
     $signature = fread($handle, 4);
     fclose($handle);
     
-    // .xlsx files are ZIP archives, check for ZIP signature (PK\x03\x04)
-    if (substr($signature, 0, 2) !== 'PK') {
-        $errors[] = "{$fieldName} does not appear to be a valid Excel file";
+    if ($fileExtension === 'xlsx') {
+        // .xlsx files are ZIP archives, check for ZIP signature (PK\x03\x04)
+        if (substr($signature, 0, 2) !== 'PK') {
+            $errors[] = "{$fieldName} does not appear to be a valid Excel file";
+        }
+    } elseif ($fileExtension === 'csv') {
+        // CSV files should be plain text - basic validation
+        // Check that first few bytes are printable ASCII or UTF-8
+        $firstBytes = substr($signature, 0, 3);
+        // Skip UTF-8 BOM if present (EF BB BF)
+        if ($firstBytes === "\xEF\xBB\xBF") {
+            // Valid UTF-8 BOM, continue
+        } else {
+            // Check if printable ASCII/text
+            $isPrintable = ctype_print($signature[0]) || ord($signature[0]) >= 0x20;
+            if (!$isPrintable && $signature[0] !== "\n" && $signature[0] !== "\r") {
+                $errors[] = "{$fieldName} does not appear to be a valid CSV file";
+            }
+        }
     }
     
     return $errors;
@@ -107,10 +126,13 @@ try {
         throw new Exception(implode('<br>', $errors));
     }
     
-    // Save uploaded files temporarily
-    $glTempPath = sys_get_temp_dir() . '/gl_upload_' . time() . '.xlsx';
-    $fepTempPath = sys_get_temp_dir() . '/fep_upload_' . time() . '.xlsx';
-    
+    // Save uploaded files temporarily (preserve original extension for format detection)
+    $glExtension = strtolower(pathinfo($_FILES['gl_file']['name'], PATHINFO_EXTENSION));
+    $fepExtension = strtolower(pathinfo($_FILES['fep_file']['name'], PATHINFO_EXTENSION));
+
+    $glTempPath = sys_get_temp_dir() . '/gl_upload_' . time() . '.' . $glExtension;
+    $fepTempPath = sys_get_temp_dir() . '/fep_upload_' . time() . '.' . $fepExtension;
+
     move_uploaded_file($_FILES['gl_file']['tmp_name'], $glTempPath);
     move_uploaded_file($_FILES['fep_file']['tmp_name'], $fepTempPath);
     

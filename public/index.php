@@ -5,39 +5,98 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ATM Reconciliation System</title>
     <style>
+        :root {
+            /* Light mode (default) */
+            --bg-gradient-start: #667eea;
+            --bg-gradient-end: #764ba2;
+            --card-bg: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --input-bg: #f9fafb;
+            --input-border: #d1d5db;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --shadow-hover: rgba(102, 126, 234, 0.4);
+            --info-bg: #dbeafe;
+            --info-border: #3b82f6;
+            --info-text: #1e40af;
+            --success-color: #10b981;
+            --error-bg: #fee2e2;
+            --error-border: #ef4444;
+            --error-text: #991b1b;
+            --warning-bg: #fff3cd;
+            --warning-border: #ffc107;
+            --warning-text: #856404;
+            --danger-bg: #ffebee;
+            --danger-border: #d32f2f;
+            --danger-text: #c62828;
+            --danger-text-dark: #b71c1c;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-gradient-start: #1e293b;
+                --bg-gradient-end: #0f172a;
+                --card-bg: #1e293b;
+                --text-primary: #f1f5f9;
+                --text-secondary: #94a3b8;
+                --border-color: #334155;
+                --input-bg: #0f172a;
+                --input-border: #475569;
+                --shadow-color: rgba(0, 0, 0, 0.5);
+                --shadow-hover: rgba(102, 126, 234, 0.6);
+                --info-bg: #1e3a5f;
+                --info-border: #3b82f6;
+                --info-text: #93c5fd;
+                --success-color: #34d399;
+                --error-bg: #7f1d1d;
+                --error-border: #ef4444;
+                --error-text: #fecaca;
+                --warning-bg: #4a3c1a;
+                --warning-border: #fbbf24;
+                --warning-text: #fde68a;
+                --danger-bg: #7f1d1d;
+                --danger-border: #ef4444;
+                --danger-text: #fca5a5;
+                --danger-text-dark: #fecaca;
+            }
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
+            transition: background 0.3s ease;
         }
-        
+
         .container {
-            background: white;
+            background: var(--card-bg);
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 20px 60px var(--shadow-color);
             padding: 40px;
             max-width: 600px;
             width: 100%;
+            transition: all 0.3s ease;
         }
-        
+
         h1 {
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 10px;
             font-size: 28px;
         }
-        
+
         .subtitle {
-            color: #666;
+            color: var(--text-secondary);
             margin-bottom: 30px;
             font-size: 14px;
         }
@@ -48,149 +107,149 @@
         
         label {
             display: block;
-            color: #555;
+            color: var(--text-secondary);
             font-weight: 600;
             margin-bottom: 8px;
             font-size: 14px;
         }
-        
+
         .file-input-wrapper {
             position: relative;
             overflow: hidden;
             display: inline-block;
             width: 100%;
         }
-        
+
         .file-input-wrapper input[type=file] {
             position: absolute;
             left: -9999px;
         }
-        
+
         .file-input-button {
             display: block;
             width: 100%;
             padding: 12px 20px;
-            background: #f8f9fa;
-            border: 2px dashed #ddd;
+            background: var(--input-bg);
+            border: 2px dashed var(--input-border);
             border-radius: 10px;
             cursor: pointer;
             text-align: center;
             transition: all 0.3s ease;
-            color: #666;
+            color: var(--text-secondary);
         }
-        
+
         .file-input-button:hover {
-            background: #e9ecef;
-            border-color: #667eea;
+            border-color: var(--info-border);
+            background: var(--card-bg);
         }
-        
+
         .file-name {
             margin-top: 8px;
             font-size: 12px;
-            color: #28a745;
+            color: var(--success-color);
             font-weight: 500;
         }
-        
+
         .submit-btn {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             color: white;
             border: none;
             border-radius: 10px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
             margin-top: 20px;
         }
-        
+
         .submit-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 5px 20px var(--shadow-hover);
         }
-        
+
         .submit-btn:active {
             transform: translateY(0);
         }
-        
+
         .submit-btn:disabled {
-            background: #ccc;
+            background: var(--border-color);
             cursor: not-allowed;
             transform: none;
         }
-        
+
         .error-message {
-            background: #fee;
-            color: #c33;
+            background: var(--error-bg);
+            color: var(--error-text);
             padding: 12px;
             border-radius: 8px;
             margin-top: 15px;
             font-size: 14px;
-            border-left: 4px solid #c33;
+            border-left: 4px solid var(--error-border);
         }
-        
+
         .info-box {
-            background: #e7f3ff;
+            background: var(--info-bg);
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 25px;
-            border-left: 4px solid #2196F3;
+            border-left: 4px solid var(--info-border);
         }
-        
+
         .info-box h3 {
-            color: #1976D2;
+            color: var(--info-text);
             margin-bottom: 8px;
             font-size: 16px;
         }
-        
+
         .info-box ul {
             margin-left: 20px;
-            color: #555;
+            color: var(--text-secondary);
             font-size: 13px;
             line-height: 1.8;
         }
         
         .file-requirements {
-            background: #fff3cd;
+            background: var(--warning-bg);
             padding: 12px;
             border-radius: 8px;
             margin-top: 8px;
-            border-left: 4px solid #ffc107;
+            border-left: 4px solid var(--warning-border);
         }
-        
+
         .file-requirements p {
-            color: #856404;
+            color: var(--warning-text);
             font-size: 12px;
             margin: 2px 0;
         }
         
         .warning-box {
-            background: #ffebee;
+            background: var(--danger-bg);
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 25px;
-            border-left: 4px solid #d32f2f;
+            border-left: 4px solid var(--danger-border);
         }
-        
+
         .warning-box h3 {
-            color: #c62828;
+            color: var(--danger-text);
             margin-bottom: 8px;
             font-size: 16px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        
+
         .warning-box ul {
             margin-left: 20px;
-            color: #b71c1c;
+            color: var(--danger-text-dark);
             font-size: 13px;
             line-height: 1.8;
         }
-        
+
         .warning-box strong {
-            color: #c62828;
+            color: var(--danger-text);
         }
     </style>
 </head>
@@ -218,38 +277,38 @@
             </ul>
             <h3 style="margin-top: 12px;">File Requirements:</h3>
             <ul>
-                <li><strong>Format:</strong> Excel .xlsx only (Excel 2007 or later)</li>
+                <li><strong>Format:</strong> Excel .xlsx or CSV (.csv)</li>
                 <li><strong>Size:</strong> Maximum 1MB per file</li>
-                <li><strong>Note:</strong> Older .xls format is not supported</li>
+                <li><strong>Note:</strong> CSV format is 60x faster! Older .xls format is not supported</li>
             </ul>
         </div>
         
         <form action="process.php" method="POST" enctype="multipart/form-data" id="uploadForm">
             <div class="upload-section">
-                <label for="gl_file">GL File (Excel)</label>
+                <label for="gl_file">GL File (Excel or CSV)</label>
                 <div class="file-input-wrapper">
                     <label class="file-input-button" for="gl_file">
                         📁 Choose GL File
                     </label>
-                    <input type="file" id="gl_file" name="gl_file" accept=".xlsx" required>
+                    <input type="file" id="gl_file" name="gl_file" accept=".xlsx,.csv" required>
                 </div>
                 <div class="file-name" id="gl_file_name"></div>
                 <div class="file-requirements">
-                    <p><strong>Requirements:</strong> .xlsx format only | Max 1MB</p>
+                    <p><strong>Requirements:</strong> .xlsx or .csv format | Max 1MB | CSV recommended (faster)</p>
                 </div>
             </div>
             
             <div class="upload-section">
-                <label for="fep_file">FEP File (Excel)</label>
+                <label for="fep_file">FEP File (Excel or CSV)</label>
                 <div class="file-input-wrapper">
                     <label class="file-input-button" for="fep_file">
                         📁 Choose FEP File
                     </label>
-                    <input type="file" id="fep_file" name="fep_file" accept=".xlsx" required>
+                    <input type="file" id="fep_file" name="fep_file" accept=".xlsx,.csv" required>
                 </div>
                 <div class="file-name" id="fep_file_name"></div>
                 <div class="file-requirements">
-                    <p><strong>Requirements:</strong> .xlsx format only | Max 1MB</p>
+                    <p><strong>Requirements:</strong> .xlsx or .csv format | Max 1MB | CSV recommended (faster)</p>
                 </div>
             </div>
             
@@ -263,7 +322,7 @@
     
     <script>
         const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB in bytes
-        const ALLOWED_EXTENSION = '.xlsx';
+        const ALLOWED_EXTENSIONS = ['.xlsx', '.csv'];
         
         function validateFile(file, fieldName) {
             const errors = [];
@@ -282,8 +341,9 @@
             
             // Check file extension
             const fileName = file.name.toLowerCase();
-            if (!fileName.endsWith(ALLOWED_EXTENSION)) {
-                errors.push(`${fieldName} must be in .xlsx format (Excel 2007+)`);
+            const hasValidExtension = ALLOWED_EXTENSIONS.some(ext => fileName.endsWith(ext));
+            if (!hasValidExtension) {
+                errors.push(`${fieldName} must be in .xlsx or .csv format`);
             }
             
             return errors;
