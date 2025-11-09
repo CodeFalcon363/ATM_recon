@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+/**
+ * Final reconciliation result with BALANCED/GL_MISSING/FEP_MISSING status determination
+ */
 class ReconciliationResult
 {
     private $loadAmount;
@@ -52,8 +55,6 @@ class ReconciliationResult
             $this->status = 'BALANCED';
             $this->message = 'LOAD TO LOAD IS BALANCED';
         } else {
-            // If (Load - Unload) - FEP_total is positive => GL > FEP => likely GL not on FEP
-            // If negative => FEP > GL => likely FEP not on GL
             if ($this->difference > 0) {
                 $this->status = 'GL_MISSING';
                 $this->message = 'LIKELY GL NOT ON FEP EXIST';

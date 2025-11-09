@@ -66,6 +66,8 @@ temp/
 # Avoid committing platform-specific metadata
 *.swp
 *.swo
+*DEPLOYMENT_100_USERS.md
+*DEPLOYMENT.md
 
 # Composer lock is generally recommended to commit for apps; not ignored here
 # If you want to ignore it, add /composer.lock

@@ -5,6 +5,9 @@ namespace App\Services;
 use DateTime;
 use Exception;
 
+/**
+ * Processes FEP transaction data with filtering pipeline: approved → dedup → type filter → date range
+ */
 class FEPProcessor
 {
     private $data;
@@ -15,15 +18,12 @@ class FEPProcessor
     private $requestDateColumn;
     private $amountColumn;
     private $tranTypeColumn;
-    
-    // Store filtered-out transactions for second-pass matching
     private $filteredOutTransactions = [];
     
     public function __construct(array $data)
     {
         $this->data = $data;
-        
-        // Find the header row (look for key headers like "RETRIEVAL" and "RESPONSE MEANING")
+
         $headerRow = 0;
         foreach ($data as $index => $row) {
             $rowStr = strtolower(implode('', $row));
@@ -33,36 +33,30 @@ class FEPProcessor
                 break;
             }
         }
-        
+
         $this->headers = $data[$headerRow];
         $this->data = array_slice($data, $headerRow + 1);
-        // Precompute normalized retrieval refs and parsed timestamps for speed
         $this->precomputeFields();
         $this->identifyColumns();
     }
 
     private function precomputeFields(): void
     {
-        // We'll lazily compute these when columns are identified, but initialize arrays
-        // This method reserved for future eager preprocessing if helpful
     }
     
     private function identifyColumns(): void
     {
         foreach ($this->headers as $index => $header) {
             $headerLower = strtolower(trim($header));
-            // Response meaning header can be named in many ways; be permissive
+
             if ($this->responseMeaningColumn === null && (strpos($headerLower, 'response') !== false || strpos($headerLower, 'resp') !== false)) {
-                // Prefer headers that also contain 'meaning' or short forms like 'code' or 'status'
                 if (strpos($headerLower, 'meaning') !== false || strpos($headerLower, 'code') !== false || strpos($headerLower, 'status') !== false || preg_match('/resp(onse)?\b/', $headerLower)) {
                     $this->responseMeaningColumn = $index;
                 } else {
-                    // still accept a generic 'response' if no better match later
                     $this->responseMeaningColumn = $index;
                 }
             }
 
-            // Retrieval/reference column can be spelled differently; accept 'retrieval', 'reference', 'rrn'
             if ($this->retrievalRefColumn === null && (strpos($headerLower, 'retrieval') !== false || strpos($headerLower, 'reference') !== false || strpos($headerLower, 'rrn') !== false || strpos($headerLower, 'retrieval ref') !== false)) {
                 $this->retrievalRefColumn = $index;
             }
@@ -80,25 +74,18 @@ class FEPProcessor
                 strpos($headerLower, 'type') !== false) {
                 $this->tranTypeColumn = $index;
             }
-            
-            // Response code column (e.g., 'RSP CODE', 'RSP')
+
             if ($this->responseCodeColumn === null && (strpos($headerLower, 'rsp') !== false || strpos($headerLower, 'response code') !== false || strpos($headerLower, 'rcode') !== false || preg_match('/\brsp\b/', $headerLower))) {
                 $this->responseCodeColumn = $index;
             }
         }
-        
-        // If some columns are missing, don't throw immediately - try best-effort and allow
-        // processors to handle missing columns gracefully. Only throw if both critical
-        // fields are missing (response and retrieval) since matching would be impossible.
+
         if ($this->responseMeaningColumn === null && $this->retrievalRefColumn === null) {
             throw new Exception("Required columns (response meaning or retrieval ref) not found in FEP file");
         }
 
-        // Precompute normalized fields for each row to speed later operations
         foreach ($this->data as $idx => $row) {
-            // Defensive access - columns may be null
             $ref = ($this->retrievalRefColumn !== null && isset($row[$this->retrievalRefColumn])) ? $row[$this->retrievalRefColumn] : '';
-            // Normalize retrieval/ref by trimming and removing internal whitespace
             $normalized = $ref !== '' ? preg_replace('/\s+/', '', trim((string)$ref)) : null;
             $this->data[$idx]['__normalized_ref'] = ($normalized !== '' && $normalized !== null) ? $normalized : null;
 
@@ -110,14 +97,16 @@ class FEPProcessor
             $this->data[$idx]['__parsed_amount'] = $amt === '' ? 0.0 : (float)$amt;
         }
     }
-    
+
+    /**
+     * Keep only approved transactions (response code '00'/'0' or text 'approved')
+     */
     public function filterApprovedOnly(): self
     {
         $kept = [];
         $filtered = [];
-        
+
         foreach ($this->data as $row) {
-            // Determine a response string from preferred columns (response code preferred)
             $response = '';
 
             if ($this->responseCodeColumn !== null && isset($row[$this->responseCodeColumn])) {
@@ -128,13 +117,8 @@ class FEPProcessor
 
             $response = strtolower(trim($response));
 
-            // Many FEP systems use numeric codes like '00' or '0' to indicate success.
-            // Accept explicit 'approved' words, and also numeric success codes '00' or '0'.
             $hasApprovedWord = preg_match('/\b(approved|approve|authoriz|auth)\b/i', $response);
             $hasSuccessCode = preg_match('/\b0{1,2}\b/', $response);
-
-            // Detect common negations that reverse approval intent. If response is numeric code,
-            // we don't treat nearby words 'not' as negation of numeric code; check the text form.
             $hasNegation = preg_match('/\b(not|declin|fail|revers)\b/i', $response) && !preg_match('/\b0{1,2}\b/', $response);
 
             $isApproved = ($hasApprovedWord || $hasSuccessCode) && !$hasNegation;
@@ -154,23 +138,20 @@ class FEPProcessor
     
     public function filterByTransactionType(): self
     {
-        // Remove REVERSAL transactions
-        // This should be called AFTER duplicate removal
         if ($this->tranTypeColumn === null) {
-            return $this; // No transaction type column, skip this filter
+            return $this;
         }
-        
+
         $kept = [];
         $filtered = [];
-        
+
         foreach ($this->data as $row) {
             if (!isset($row[$this->tranTypeColumn])) {
                 $kept[] = $row;
                 continue;
             }
-            
+
             $tranType = strtoupper(trim($row[$this->tranTypeColumn]));
-            // Keep only INITIAL transactions, exclude REVERSAL
             if ($tranType !== 'REVERSAL') {
                 $kept[] = $row;
             } else {
@@ -183,14 +164,12 @@ class FEPProcessor
         
         return $this;
     }
-    
+
+    /**
+     * Handle duplicate RRNs: INITIAL+REVERSAL pairs removed, multiple INITIALs keep first only
+     */
     public function removeDuplicates(): self
     {
-        // OPTIMIZATION: Combine grouping and filtering into fewer passes
-        // Original: 3 separate loops (group, analyze, split)
-        // Optimized: 2 loops (group+analyze, split) - ~25% faster
-
-        // First pass: Group rows by RRN AND analyze duplicates simultaneously
         $rrnGroups = [];
         foreach ($this->data as $rowIndex => $row) {
             $ref = isset($row['__normalized_ref']) ? $row['__normalized_ref'] : '';
@@ -205,8 +184,7 @@ class FEPProcessor
 
         error_log("Total unique RRNs found: " . count($rrnGroups));
 
-        // Combined pass: Analyze duplicates and mark rows to filter in single loop
-        $rowsToFilter = []; // Set of row indices to remove
+        $rowsToFilter = [];
         $duplicateAnalysis = [
             'initial_reversal_pairs' => 0,
             'multiple_initials' => 0,
@@ -216,10 +194,9 @@ class FEPProcessor
         foreach ($rrnGroups as $ref => $group) {
             $groupSize = count($group);
             if ($groupSize <= 1) {
-                continue; // No duplicates
+                continue;
             }
 
-            // Inline transaction type analysis (avoids separate loop)
             $hasInitial = false;
             $hasReversal = false;
             $tranTypes = [];
@@ -231,28 +208,23 @@ class FEPProcessor
                 }
                 $tranTypes[] = $tranType;
 
-                // Early exit optimizations
                 if ($tranType === 'INITIAL') $hasInitial = true;
                 if ($tranType === 'REVERSAL') $hasReversal = true;
             }
 
-            // Apply filtering logic
             if ($hasInitial && $hasReversal) {
-                // CASE 1: Mix of INITIAL and REVERSAL - remove ALL
                 error_log("RRN $ref: Found INITIAL-REVERSAL pair - removing all instances");
                 foreach ($group as $item) {
                     $rowsToFilter[$item['index']] = true;
                 }
                 $duplicateAnalysis['initial_reversal_pairs']++;
             } elseif ($hasInitial && !$hasReversal) {
-                // CASE 2: Multiple INITIALs - keep first, remove rest
                 error_log("RRN $ref: Found $groupSize INITIAL transactions - keeping first, removing rest");
                 for ($i = 1; $i < $groupSize; $i++) {
                     $rowsToFilter[$group[$i]['index']] = true;
                 }
                 $duplicateAnalysis['multiple_initials']++;
             } else {
-                // CASE 3: Other duplicates - remove ALL
                 error_log("RRN $ref: Found duplicates with types [" . implode(', ', $tranTypes) . "] - removing all instances");
                 foreach ($group as $item) {
                     $rowsToFilter[$item['index']] = true;
@@ -261,14 +233,11 @@ class FEPProcessor
             }
         }
 
-        // Log summary
         error_log("Duplicate Analysis Summary:");
         error_log("  - INITIAL/REVERSAL pairs removed: " . $duplicateAnalysis['initial_reversal_pairs']);
         error_log("  - Multiple INITIALs (kept 1): " . $duplicateAnalysis['multiple_initials']);
         error_log("  - Other duplicates removed: " . $duplicateAnalysis['other_duplicates']);
         error_log("  - Total rows to filter: " . count($rowsToFilter));
-
-        // Final pass: Split data into kept and filtered
         $kept = [];
         $filtered = [];
 
@@ -338,8 +307,7 @@ class FEPProcessor
         
         $this->data = $kept;
         $this->filteredOutTransactions = array_merge($this->filteredOutTransactions, $filtered);
-        
-        // Log filtering results (will be visible in error logs)
+
         error_log("FEP Date Filtering: Kept $filteredCount transactions, excluded $beforeStart before load, $afterEnd after unload");
         
         return $this;
@@ -370,10 +338,8 @@ class FEPProcessor
     {
         return $this->headers;
     }
-    
-    /**
-     * Get all transactions that were filtered out during processing
-     */
+
+
     public function getFilteredOutTransactions(): array
     {
         return $this->filteredOutTransactions;
@@ -386,13 +352,12 @@ class FEPProcessor
         if (empty($dateString)) {
             return new DateTime('1900-01-01');
         }
-        
-        // Try various formats
+
         $formats = [
-            'd/m/Y g:i A',          // 09/10/2025 2:07 PM
-            'm/d/Y g:i A',          // 10/09/2025 2:07 PM
-            'd/m/Y H:i',            // 09/10/2025 14:07
-            'm/d/Y H:i',            // 10/09/2025 14:07
+            'd/m/Y g:i A',
+            'm/d/Y g:i A',
+            'd/m/Y H:i',
+            'm/d/Y H:i',
             'Y-m-d H:i:s',
             'd/m/Y H:i:s',
             'm/d/Y H:i:s',
@@ -410,8 +375,7 @@ class FEPProcessor
                 return $date;
             }
         }
-        
-        // Fallback
+
         try {
             return new DateTime($dateString);
         } catch (Exception $e) {

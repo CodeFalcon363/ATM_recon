@@ -212,7 +212,7 @@ use App\Services\UniversalFileReader;
 </head>
 <body>
     <div class="container">
-        <h1>🔍 File Inspector (CSV & Excel)</h1>
+        <h1>File Inspector (CSV & Excel)</h1>
         <p class="subtitle">Upload a CSV or Excel file to inspect its structure and contents</p>
 
         <div class="info-box">
@@ -234,7 +234,7 @@ use App\Services\UniversalFileReader;
                 <label for="data_file">Select File (CSV or Excel)</label>
                 <input type="file" id="data_file" name="data_file" accept=".csv,.xlsx,.xls" required>
             </div>
-            <button type="submit">📊 Inspect File</button>
+            <button type="submit">Inspect File</button>
         </form>
         
         <?php
@@ -254,7 +254,7 @@ use App\Services\UniversalFileReader;
                 $data = $reader->toArray();
 
                 echo '<div class="results">';
-                echo '<h2>📋 File Information</h2>';
+                echo '<h2>File Information</h2>';
                 echo '<div class="column-info">';
                 echo '<strong>File:</strong> ' . htmlspecialchars($_FILES['data_file']['name']) . '<br>';
                 echo '<strong>Format:</strong> ' . strtoupper($fileType) . '<br>';
@@ -307,7 +307,7 @@ use App\Services\UniversalFileReader;
                 echo '</div>';
                 
                 // Search for key columns
-                echo '<h3>🔎 Column Detection</h3>';
+                echo '<h3>Column Detection</h3>';
                 echo '<div class="column-info">';
                 echo '<p style="margin-bottom: 10px; font-size: 13px; color: #666;">The system uses permissive matching to detect columns. Multiple keywords are checked for each column type.</p>';
                 
@@ -328,47 +328,47 @@ use App\Services\UniversalFileReader;
                     if (strpos($headerLower, 'description') !== false ||
                         strpos($headerLower, 'narration') !== false ||
                         strpos($headerLower, 'narrative') !== false) {
-                        $detectedColumns[] = '<span class="highlight">✅ Description column: "' .
+                        $detectedColumns[] = '<span class="highlight">Description column: "' .
                                              htmlspecialchars($header) . '" (' . $colIdentifier . ')</span>';
                     }
 
                     if (strpos($headerLower, 'credit') !== false && strpos($headerLower, 'count') === false) {
-                        $detectedColumns[] = '<span class="highlight">✅ Credit column: "' .
+                        $detectedColumns[] = '<span class="highlight">Credit column: "' .
                                              htmlspecialchars($header) . '" (' . $colIdentifier . ')</span>';
                     }
 
                     if (strpos($headerLower, 'debit') !== false && strpos($headerLower, 'count') === false) {
-                        $detectedColumns[] = '<span class="highlight">✅ Debit column: "' .
+                        $detectedColumns[] = '<span class="highlight">Debit column: "' .
                                              htmlspecialchars($header) . '" (' . $colIdentifier . ')</span>';
                     }
-                    
+
                     // Response/Status - supports multiple formats
                     if ((strpos($headerLower, 'response') !== false) ||
                         (strpos($headerLower, 'rsp') !== false) ||
                         strpos($headerLower, 'status') !== false) {
-                        $detectedColumns[] = '<span class="highlight">✅ Response/Status column: "' .
+                        $detectedColumns[] = '<span class="highlight">Response/Status column: "' .
                                              htmlspecialchars($header) . '" (' . $colIdentifier . ')</span>';
                     }
 
                     if ((strpos($headerLower, 'retrieval') !== false &&
                         (strpos($headerLower, 'reference') !== false || strpos($headerLower, 'ref') !== false)) ||
                         strpos($headerLower, 'rrn') !== false) {
-                        $detectedColumns[] = '<span class="highlight">✅ Retrieval Reference (RRN): "' .
+                        $detectedColumns[] = '<span class="highlight">Retrieval Reference (RRN): "' .
                                              htmlspecialchars($header) . '" (' . $colIdentifier . ')</span>';
                     }
 
                     if (strpos($headerLower, 'amount') !== false) {
-                        $detectedColumns[] = '<span class="highlight">✅ Amount column: "' .
+                        $detectedColumns[] = '<span class="highlight">Amount column: "' .
                                              htmlspecialchars($header) . '" (' . $colIdentifier . ')</span>';
                     }
 
                     if (strpos($headerLower, 'date') !== false) {
-                        $detectedColumns[] = '<span class="highlight">✅ Date column: "' .
+                        $detectedColumns[] = '<span class="highlight">Date column: "' .
                                              htmlspecialchars($header) . '" (' . $colIdentifier . ')</span>';
                     }
 
                     if (strpos($headerLower, 'tran') !== false && strpos($headerLower, 'type') !== false) {
-                        $detectedColumns[] = '<span class="highlight">✅ Transaction Type: "' .
+                        $detectedColumns[] = '<span class="highlight">Transaction Type: "' .
                                              htmlspecialchars($header) . '" (' . $colIdentifier . ')</span>';
                     }
                 }
@@ -388,9 +388,9 @@ use App\Services\UniversalFileReader;
                 
             } catch (Exception $e) {
                 echo '<div class="error-box">';
-                echo '<strong>❌ Error:</strong> ' . htmlspecialchars($e->getMessage());
-                
-                if (strpos($e->getMessage(), 'password') !== false || 
+                echo '<strong>Error:</strong> ' . htmlspecialchars($e->getMessage());
+
+                if (strpos($e->getMessage(), 'password') !== false ||
                     strpos($e->getMessage(), 'encrypted') !== false) {
                     echo '<br><br><strong>Solution:</strong> The file appears to be password-protected. Please:';
                     echo '<ul style="margin-left: 20px; margin-top: 10px;">';

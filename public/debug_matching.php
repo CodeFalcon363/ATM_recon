@@ -161,7 +161,7 @@ use App\Services\TransactionMatcher;
 </head>
 <body>
     <div class="container">
-        <h1>🔍 Transaction Matching Debug Tool (CSV & Excel)</h1>
+        <h1>Transaction Matching Debug Tool (CSV & Excel)</h1>
         <div class="info-box">
             <strong>Purpose:</strong> This tool shows exactly what RRNs are being extracted from both GL and FEP files,
             helping you understand why transactions might not be matching.
@@ -180,7 +180,7 @@ use App\Services\TransactionMatcher;
         <form method="POST" enctype="multipart/form-data" class="upload-form">
             <input type="file" name="gl_file" accept=".csv,.xlsx,.xls" required>
             <input type="file" name="fep_file" accept=".csv,.xlsx,.xls" required>
-            <button type="submit">🔍 Debug Matching</button>
+            <button type="submit">Debug Matching</button>
         </form>
         
         <?php
@@ -374,7 +374,7 @@ use App\Services\TransactionMatcher;
                 
                 // Perform actual matching
                 echo '<div class="section">';
-                echo '<h2>🔄 Running Transaction Matcher</h2>';
+                echo '<h2>Running Transaction Matcher</h2>';
                 echo '<p style="margin-bottom: 15px; font-size: 13px; color: #666;">Note: Matching uses normalized RRNs (last 12 digits). GL amounts prefer explicit Credit/Debit columns.</p>';
                 
                 $matcher = new TransactionMatcher($glData, $fepData, $glHeaders, $fepHeaders);
@@ -383,29 +383,29 @@ use App\Services\TransactionMatcher;
                 echo '<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 20px;">';
                 echo '<div style="background: #d4edda; padding: 20px; border-radius: 10px; text-align: center;">';
                 echo '<div style="font-size: 32px; font-weight: bold; color: #155724;">' . $result->getMatchedCount() . '</div>';
-                echo '<div style="color: #155724; margin-top: 10px;">✅ Matched</div>';
+                echo '<div style="color: #155724; margin-top: 10px;">Matched</div>';
                 echo '<div style="font-size: 12px; color: #155724; margin-top: 5px;">₦' . number_format($result->getMatchedAmount(), 2) . '</div>';
                 echo '</div>';
                 echo '<div style="background: #e2e3e5; padding: 20px; border-radius: 10px; text-align: center;">';
                 echo '<div style="font-size: 32px; font-weight: bold; color: #383d41;">' . $result->getGlFoundInFilteredFepCount() . '</div>';
-                echo '<div style="color: #383d41; margin-top: 10px;">🔍 GL in Filtered FEP</div>';
+                echo '<div style="color: #383d41; margin-top: 10px;">GL in Filtered FEP</div>';
                 echo '<div style="font-size: 11px; color: #383d41; margin-top: 5px;">Found in excluded FEP<br>(Not truly missing)</div>';
                 echo '</div>';
                 echo '<div style="background: #f8d7da; padding: 20px; border-radius: 10px; text-align: center;">';
                 echo '<div style="font-size: 32px; font-weight: bold; color: #721c24;">' . $result->getGlNotOnFepCount() . '</div>';
-                echo '<div style="color: #721c24; margin-top: 10px;">⚠️ GL Not on FEP</div>';
+                echo '<div style="color: #721c24; margin-top: 10px;">GL Not on FEP</div>';
                 echo '<div style="font-size: 12px; color: #721c24; margin-top: 5px;">Credit: ₦' . number_format($result->getGlNotOnFepCreditTotal(), 2) . '<br>Debit: ₦' . number_format($result->getGlNotOnFepDebitTotal(), 2) . '</div>';
                 echo '</div>';
                 echo '<div style="background: #fff3cd; padding: 20px; border-radius: 10px; text-align: center;">';
                 echo '<div style="font-size: 32px; font-weight: bold; color: #856404;">' . $result->getFepNotOnGlCount() . '</div>';
-                echo '<div style="color: #856404; margin-top: 10px;">⚠️ FEP Not on GL</div>';
+                echo '<div style="color: #856404; margin-top: 10px;">FEP Not on GL</div>';
                 echo '<div style="font-size: 12px; color: #856404; margin-top: 5px;">₦' . number_format($result->getFepNotOnGlAmount(), 2) . '</div>';
                 echo '</div>';
                 echo '</div>';
-                
+
                 if (count($result->getNilledGlDuplicates()) > 0) {
                     echo '<div style="margin-top: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #6c757d;">';
-                    echo '<strong>ℹ️ GL Duplicate Reversals NILed:</strong> ' . count($result->getNilledGlDuplicates()) . ' entries';
+                    echo '<strong>GL Duplicate Reversals NILed:</strong> ' . count($result->getNilledGlDuplicates()) . ' entries';
                     echo '<div style="font-size: 12px; color: #666; margin-top: 5px;">These GL entries were identified as reversal pairs and excluded from "GL Not on FEP" report</div>';
                     echo '</div>';
                 }
@@ -417,7 +417,7 @@ use App\Services\TransactionMatcher;
                 
             } catch (Exception $e) {
                 echo '<div class="error-box">';
-                echo '<strong>❌ Error:</strong> ' . htmlspecialchars($e->getMessage());
+                echo '<strong>Error:</strong> ' . htmlspecialchars($e->getMessage());
                 echo '</div>';
             }
         }

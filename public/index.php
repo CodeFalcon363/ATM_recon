@@ -255,11 +255,11 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 ATM Reconciliation System</h1>
+        <h1>ATM Reconciliation System</h1>
         <p class="subtitle">Upload GL and FEP files for automatic reconciliation</p>
-        
+
         <div class="warning-box">
-            <h3>⚠️ Important Notice</h3>
+            <h3>Important Notice</h3>
             <ul>
                 <li><strong>Monthly Cycle Only:</strong> Both GL and FEP files must contain transactions from a <strong>single month cycle</strong> only</li>
                 <li>Do not upload files with transactions spanning multiple months</li>
@@ -288,7 +288,7 @@
                 <label for="gl_file">GL File (Excel or CSV)</label>
                 <div class="file-input-wrapper">
                     <label class="file-input-button" for="gl_file">
-                        📁 Choose GL File
+                        Choose GL File
                     </label>
                     <input type="file" id="gl_file" name="gl_file" accept=".xlsx,.csv" required>
                 </div>
@@ -302,7 +302,7 @@
                 <label for="fep_file">FEP File (Excel or CSV)</label>
                 <div class="file-input-wrapper">
                     <label class="file-input-button" for="fep_file">
-                        📁 Choose FEP File
+                        Choose FEP File
                     </label>
                     <input type="file" id="fep_file" name="fep_file" accept=".xlsx,.csv" required>
                 </div>
@@ -313,7 +313,7 @@
             </div>
             
             <button type="submit" class="submit-btn" id="submitBtn">
-                🚀 Process Files
+                Process Files
             </button>
             
             <div id="errorMessage" class="error-message" style="display: none;"></div>
@@ -321,7 +321,7 @@
     </div>
     
     <script>
-        const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB in bytes
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB in bytes
         const ALLOWED_EXTENSIONS = ['.xlsx', '.csv'];
         
         function validateFile(file, fieldName) {
@@ -335,8 +335,8 @@
             
             // Check file size
             if (file.size > MAX_FILE_SIZE) {
-                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-                errors.push(`${fieldName} is too large (${sizeMB}MB). Maximum size is 1MB`);
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(5);
+                errors.push(`${fieldName} is too large (${sizeMB}MB). Maximum size is 5MB`);
             }
             
             // Check file extension
@@ -373,14 +373,14 @@
                 if (file) {
                     const fieldName = inputId === 'gl_file' ? 'GL File' : 'FEP File';
                     const errors = validateFile(file, fieldName);
-                    
+
                     if (errors.length > 0) {
-                        display.textContent = '❌ ' + errors.join(', ');
+                        display.textContent = errors.join(', ');
                         display.style.color = '#c33';
                         e.target.value = ''; // Clear invalid file
                     } else {
                         const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-                        display.textContent = `✓ ${file.name} (${sizeMB}MB)`;
+                        display.textContent = `${file.name} (${sizeMB}MB)`;
                         display.style.color = '#28a745';
                     }
                 } else {
@@ -408,13 +408,13 @@
             const allErrors = [...glErrors, ...fepErrors];
             
             if (allErrors.length > 0) {
-                showError('❌ Validation Error: ' + allErrors.join(' | '));
+                showError('Validation Error: ' + allErrors.join(' | '));
                 return false;
             }
-            
+
             // All validations passed, submit form
             document.getElementById('submitBtn').disabled = true;
-            document.getElementById('submitBtn').textContent = '⏳ Processing...';
+            document.getElementById('submitBtn').textContent = 'Processing...';
             this.submit();
         });
     </script>

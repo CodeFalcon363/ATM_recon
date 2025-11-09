@@ -1,10 +1,8 @@
 # Quick Start Guide
 
-**Last Updated:** 2025-11-04
+**Last Updated:** 2025-11-03
 
 Get the ATM GL/FEP Reconciliation System running in 5 minutes.
-
-**Supports:** CSV and Excel (.xlsx) formats | **Performance:** Up to 40x faster with CSV
 
 ## Prerequisites
 
@@ -21,10 +19,8 @@ composer install
 ```
 
 This installs:
-- PhpSpreadsheet (Excel file handling when needed)
+- PhpSpreadsheet (Excel file handling)
 - PHPUnit (testing framework, dev only)
-
-**Note:** CSV processing uses native PHP (no dependencies) for maximum speed.
 
 ### 2. Run the Application
 
@@ -33,70 +29,44 @@ This installs:
 cd public
 php -S localhost:8000
 ```
-Then access: `http://localhost:8000`
 
-**Option B: Apache/XAMPP**
-
-Since the application files are in the `public/` folder, you have two options:
-
-**Simple Access (Quick Setup):**
+**Option B: Apache/XAMPP (Production)**
 - Place project in `C:\xampp\htdocs\ATM_recon`
-- Access via `http://localhost/ATM_recon/public/`
-
-**Proper Document Root (Recommended):**
-- Configure Apache's document root to point to the `public/` folder
-- Add to your Apache `httpd.conf` or create a virtual host:
-```apache
-<VirtualHost *:80>
-    ServerName atm-recon.local
-    DocumentRoot "C:/xampp/htdocs/ATM_recon/public"
-    <Directory "C:/xampp/htdocs/ATM_recon/public">
-        AllowOverride All
-        Require all granted
-    </Directory>
-</VirtualHost>
-```
-- Add `127.0.0.1 atm-recon.local` to your `C:\Windows\System32\drivers\etc\hosts` file
-- Restart Apache and access: `http://atm-recon.local`
+- Ensure `mod_rewrite` is enabled in Apache
+- Access via `http://localhost/ATM_recon/`
 
 ### 3. Access the Application
 
 Open your browser to:
-- PHP built-in server: `http://localhost:8000`
-- XAMPP (simple): `http://localhost/ATM_recon/public/`
-- XAMPP (virtual host): `http://atm-recon.local`
+```
+http://localhost:8000
+```
+(or `http://localhost/ATM_recon/` for Apache)
 
 You'll see the upload form with a modern gradient design.
 
 ## Processing Files
 
-### Step 1: Prepare Your Files
+### Step 1: Prepare Your Excel Files
 
 **GL File Requirements:**
-- **Format**: `.csv` (recommended for speed) or `.xlsx`
-- Must have columns: Description/Narration/Narrative, Credit/Credit_Amount, Debit/Debit_Amount, Date
+- Format: `.xlsx` (modern Excel format recommended)
+- Must have columns: Description, Credit, Debit, Date
 - Description must contain "load" and "unload" entries
-- Remove password protection if using Excel
+- Remove password protection if present
 
 **FEP File Requirements:**
-- **Format**: `.csv` (recommended for speed) or `.xlsx`
+- Format: `.xlsx`
 - Must have columns: Response Meaning (or Response Code), Retrieval Reference Nr, Request Date, Amount, Transaction Type
 - Should contain "approved" transactions or response codes "00"/"0"
-- Remove password protection if using Excel
-
-**💡 Performance Tip:** Use CSV format for maximum speed:
-- **40x faster** processing (0.12s vs 4.86s)
-- **86% less memory** usage (10MB vs 72MB)
-- Same accuracy as Excel format
+- Remove password protection if present
 
 ### Step 2: Upload and Process
 
-1. Click "Choose GL File" and select your General Ledger file (.csv or .xlsx)
-2. Click "Choose FEP File" and select your Front-End Processor file (.csv or .xlsx)
+1. Click "Choose GL File" and select your General Ledger Excel file
+2. Click "Choose FEP File" and select your Front-End Processor Excel file
 3. Click "Process Files" button
-4. Wait for processing:
-   - CSV files: typically under 1 second
-   - Excel files: 5-10 seconds for typical files
+4. Wait for processing (may take 30-60 seconds for large files)
 
 ### Step 3: Review Results
 
@@ -128,14 +98,12 @@ The results page shows:
 ### Step 4: Download Results
 
 Click download links for:
-- `gl_processed` - Processed GL data
-- `fep_processed` - Filtered FEP data
-- `matched_transactions` - Matched GL↔FEP transactions
-- `gl_not_on_fep` - GL missing from FEP
-- `fep_not_on_gl` - FEP missing from GL
-- `nilled_gl_duplicates` - Reversed GL pairs
-
-**Note:** Download format matches your upload format (CSV input → CSV output, Excel input → Excel output)
+- `gl_processed.xlsx` - Processed GL data
+- `fep_processed.xlsx` - Filtered FEP data
+- `matched_transactions.xlsx` - Matched GL↔FEP transactions
+- `gl_not_on_fep.xlsx` - GL missing from FEP
+- `fep_not_on_gl.xlsx` - FEP missing from GL
+- `nilled_gl_duplicates.xlsx` - Reversed GL pairs
 
 ## Understanding the Processing
 
@@ -265,11 +233,10 @@ http://localhost:8000/verify.php
 
 ### Large File Processing Slow or Failing
 **Solution:**
-- **Best fix:** Convert Excel files to CSV format (40x faster, 86% less memory)
 - Check PHP settings: `upload_max_filesize`, `max_execution_time`, `memory_limit`
 - Configured in `.htaccess` (Apache) or `.user.ini` (PHP-FPM)
 - Default limits: 50MB file, 300s timeout, 256MB memory
-- CSV files typically process in under 1 second, even large ones
+- Increase if needed for very large files
 
 ## Key Behaviors to Remember
 

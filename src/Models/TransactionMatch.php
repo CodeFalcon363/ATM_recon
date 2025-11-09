@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+/**
+ * Contains matched, unmatched, and nilled transaction sets with aggregated totals
+ */
 class TransactionMatch
 {
     private $matchedTransactions;
@@ -44,13 +47,12 @@ class TransactionMatch
     $this->glNotOnFepDebitTotal = $glNotOnFepDebitTotal;
         $this->fepHeaders = $fepHeaders;
     $this->nilledGlDuplicates = $nilledGlDuplicates;
-        
-        // Calculate totals
+
         $this->matchedAmount = $this->calculateTotal($matchedTransactions, 'amount');
         $this->glNotOnFepAmount = $this->calculateTotal($glNotOnFep, 'amount');
         $this->fepNotOnGlAmount = $this->calculateTotal($fepNotOnGl, 'amount');
         $this->glFoundInFilteredFepAmount = $this->calculateTotal($glFoundInFilteredFep, 'amount');
-        // If caller provided explicit count/total for filtered-found GL rows, use them
+
         if ($this->glFoundInFilteredFepCount === 0 && !empty($glFoundInFilteredFep)) {
             $this->glFoundInFilteredFepCount = count($glFoundInFilteredFep);
         }
@@ -135,7 +137,6 @@ class TransactionMatch
     
     public function getGlFoundInFilteredFepAmount(): float
     {
-        // Prefer the explicitly provided total if available
         return $this->glFoundInFilteredFepTotal ?: $this->glFoundInFilteredFepAmount;
     }
     

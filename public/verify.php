@@ -197,7 +197,7 @@ use App\Services\TransactionMatcher;
 </head>
 <body>
     <div class="container">
-        <h1>🔍 Reconciliation Verification Tool (CSV & Excel)</h1>
+        <h1>Reconciliation Verification Tool (CSV & Excel)</h1>
 
         <form method="POST" enctype="multipart/form-data" class="upload-form">
             <input type="file" name="gl_file" accept=".csv,.xlsx,.xls" required>
@@ -231,7 +231,7 @@ use App\Services\TransactionMatcher;
 
                 // Display file format information
                 echo '<div class="info-box" style="background: #e7f3ff; border-left-color: #2196F3; margin-bottom: 20px;">';
-                echo '<strong>📁 File Formats Detected:</strong><br>';
+                echo '<strong>File Formats Detected:</strong><br>';
                 echo 'GL File: <strong>' . strtoupper($glFileType) . '</strong> | ';
                 echo 'FEP File: <strong>' . strtoupper($fepFileType) . '</strong>';
                 echo '</div>';
@@ -241,7 +241,7 @@ use App\Services\TransactionMatcher;
                 
                 if ($loadUnloadData->getLoadCount() > 1 || $loadUnloadData->getUnloadCount() > 1) {
                     echo '<div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #ffc107;">';
-                    echo '<strong>🔄 Multiple Load/Unload Cycles Detected</strong><br>';
+                    echo '<strong>Multiple Load/Unload Cycles Detected</strong><br>';
                     echo '<span style="font-size: 13px;">Using multi-cycle reconciliation mode</span>';
                     echo '</div>';
                 }
@@ -300,7 +300,7 @@ use App\Services\TransactionMatcher;
                 
                 echo '<div class="section">';
                 echo '<h2>FEP File Processing Steps (CORRECT ORDER)</h2>';
-                echo '<p style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px;"><strong>⚠️ Important:</strong> The filter pipeline order matters:</p>';
+                echo '<p style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px;"><strong>Important:</strong> The filter pipeline order matters:</p>';
                 echo '<ol style="margin-left: 20px; margin-bottom: 15px; line-height: 1.8;">';
                 echo '<li><strong>Filter Approved Only:</strong> Keep only approved transactions (textual "approved" or numeric codes "00"/"0")</li>';
                 echo '<li><strong>Remove Duplicates:</strong> Handle RRN duplicates with smart logic - remove INITIAL/REVERSAL pairs entirely, keep first of multiple INITIALs</li>';
@@ -470,7 +470,7 @@ use App\Services\TransactionMatcher;
                 echo '<div class="info-box">';
                 echo '<div class="info-label">Status</div>';
                 if (abs($variance) < 0.01) {
-                    echo '<div class="info-value" style="color: #2a2;">BALANCED ✅</div>';
+                    echo '<div class="info-value" style="color: #2a2;">BALANCED</div>';
                 } elseif ($variance < 0) {
                     echo '<div class="info-value" style="color: #c33; font-size: 14px;">GL NOT ON FEP</div>';
                 } else {

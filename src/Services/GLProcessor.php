@@ -6,6 +6,9 @@ use App\Models\LoadUnloadData;
 use DateTime;
 use Exception;
 
+/**
+ * Extracts load/unload data from GL files supporting multi-cycle operations
+ */
 class GLProcessor
 {
     private $data;
@@ -14,12 +17,12 @@ class GLProcessor
     private $creditColumn;
     private $debitColumn;
     private $dateColumn;
-    
+
     public function __construct(array $data)
     {
         $this->data = $data;
-        
-        // Find the header row (look for "DESCRIPTION"/"NARRATIVE" and credit/debit columns)
+
+        // Locate header row containing description, credit, and debit columns
         $headerRow = 0;
         foreach ($data as $index => $row) {
             $rowStr = strtolower(implode('', $row));
@@ -34,20 +37,17 @@ class GLProcessor
                 break;
             }
         }
-        
-        // Normalize header row and data rows to numeric-indexed arrays
+
         $this->headers = isset($data[$headerRow]) ? array_values((array)$data[$headerRow]) : [];
         $this->data = array_values(array_slice($data, $headerRow + 1));
         $this->identifyColumns();
     }
-    
+
     private function identifyColumns(): void
     {
-        // Find Description, Credit, Debit, and Date columns
         foreach ($this->headers as $index => $header) {
             $headerLower = strtolower(trim($header));
 
-            // Description column: look for description, narration, or narrative
             if ($this->descriptionColumn === null) {
                 if (strpos($headerLower, 'description') !== false ||
                     strpos($headerLower, 'narration') !== false ||
@@ -56,19 +56,16 @@ class GLProcessor
                 }
             }
 
-            // Credit column: prioritize "_amount" over "_count"
             if (strpos($headerLower, 'credit') !== false &&
                 strpos($headerLower, 'count') === false) {
                 $this->creditColumn = $index;
             }
 
-            // Debit column: prioritize "_amount" over "_count"
             if (strpos($headerLower, 'debit') !== false &&
                 strpos($headerLower, 'count') === false) {
                 $this->debitColumn = $index;
             }
 
-            // Date column
             if (strpos($headerLower, 'date') !== false) {
                 $this->dateColumn = $index;
             }
@@ -78,17 +75,17 @@ class GLProcessor
             throw new Exception("Description column not found in GL file. Headers: " . implode(', ', $this->headers));
         }
     }
-    
+
+    /**
+     * Extract load/unload totals with reversal handling and edge transaction exclusion
+     */
     public function extractLoadUnloadData(): LoadUnloadData
     {
         $loads = [];
         $unloads = [];
         $loadReversals = [];
         $unloadReversals = [];
-        
-        // First pass: collect ALL load and unload entries (including reversals)
-        // We'll also compute running totals and track min/max datetimes to avoid
-        // building a merged transactions array later.
+
         $totalLoadAmount = 0.0;
         $totalLoadReversalAmount = 0.0;
         $totalUnloadAmount = 0.0;
@@ -100,19 +97,16 @@ class GLProcessor
             if (!is_array($row) || count($row) === 0) {
                 continue;
             }
-            // Ensure numeric indexing (PhpSpreadsheet may produce associative arrays)
             $row = array_values($row);
             if (!isset($row[$this->descriptionColumn]) || $row[$this->descriptionColumn] === null || $row[$this->descriptionColumn] === '') {
                 continue;
             }
 
             $description = strtolower(trim($row[$this->descriptionColumn]));
-            
-            // Check if this is a reversal transaction
+
             $isReversal = $this->isReversalTransaction($description);
-            
-            // Find loads (check for "load" but not "unload")
-            if (strpos($description, 'load') !== false && 
+
+            if (strpos($description, 'load') !== false &&
                 strpos($description, 'unload') === false) {
                 $entry = $this->extractEntry($row, 'load', $isReversal);
 
@@ -124,7 +118,6 @@ class GLProcessor
                     $totalLoadAmount += $entry['amount'];
                 }
 
-                // adjust min/max datetime
                 if ($minDatetime === null || $entry['datetime'] < $minDatetime) {
                     $minDatetime = $entry['datetime'];
                 }
@@ -132,8 +125,7 @@ class GLProcessor
                     $maxDatetime = $entry['datetime'];
                 }
             }
-            
-            // Find unloads
+
             if (strpos($description, 'unload') !== false) {
                 $entry = $this->extractEntry($row, 'unload', $isReversal);
 
@@ -145,7 +137,6 @@ class GLProcessor
                     $totalUnloadAmount += $entry['amount'];
                 }
 
-                // adjust min/max datetime
                 if ($minDatetime === null || $entry['datetime'] < $minDatetime) {
                     $minDatetime = $entry['datetime'];
                 }
@@ -154,25 +145,22 @@ class GLProcessor
                 }
             }
         }
-        
+
         if (empty($loads) && empty($loadReversals)) {
             throw new Exception("Could not find any load entries in GL file");
         }
-        
+
         if (empty($unloads) && empty($unloadReversals)) {
             throw new Exception("Could not find any unload entries in GL file");
         }
-        
-        // Log reversal counts
+
         if (!empty($loadReversals)) {
             error_log("GL Processing: Found " . count($loadReversals) . " LOAD REVERSALS");
         }
         if (!empty($unloadReversals)) {
             error_log("GL Processing: Found " . count($unloadReversals) . " UNLOAD REVERSALS");
         }
-        
-        // Sort the primary lists (loads/unloads). Reversals don't need to be sorted
-        // for our calculations so we skip sorting them to save CPU/time.
+
         if (count($loads) > 1) {
             usort($loads, function($a, $b) {
                 return $a['datetime'] <=> $b['datetime'];
@@ -184,51 +172,39 @@ class GLProcessor
                 return $a['datetime'] <=> $b['datetime'];
             });
         }
-        
-        // Handle exclusions only for non-reversal transactions
+
+        // Exclude edge transactions that belong to adjacent cycles
         $excludedLastLoad = null;
         $excludedFirstUnload = null;
 
-        // Determine earliest load datetime (before excluding anything)
         $earliestLoadDatetime = null;
         if (!empty($loads)) {
-            // After sorting, first element is the earliest
             $earliestLoadDatetime = $loads[0]['datetime'];
         }
 
-        // Determine latest unload datetime (before excluding anything)
         $latestUnloadDatetime = null;
         if (!empty($unloads)) {
-            // After sorting, last element is the latest
             $latestUnloadDatetime = $unloads[count($unloads) - 1]['datetime'];
         }
 
-        // Conditionally exclude first unload only if it occurred before the earliest load
         if (!empty($unloads)) {
             $firstUnloadCandidate = $unloads[0];
             if ($earliestLoadDatetime === null || $firstUnloadCandidate['datetime'] < $earliestLoadDatetime) {
-                // Candidate occurred before the first load -> exclude it
                 $excludedFirstUnload = array_shift($unloads);
             } else {
-                // Candidate occurred at or after first load -> do not exclude
                 $excludedFirstUnload = null;
             }
         }
 
-        // Conditionally exclude last load only if it occurred after the latest unload
         if (!empty($loads)) {
             $lastLoadCandidate = $loads[count($loads) - 1];
             if ($latestUnloadDatetime === null || $lastLoadCandidate['datetime'] > $latestUnloadDatetime) {
-                // Candidate occurred after the last unload -> exclude it (for next cycle)
                 $excludedLastLoad = array_pop($loads);
             } else {
-                // Candidate occurred at or before last unload -> do not exclude
                 $excludedLastLoad = null;
             }
         }
-        // Adjust running totals to remove the excluded last load / first unload
-        // (these represent the boundary transactions that should not be included
-        // in the current cycle's totals).
+
         if ($excludedLastLoad !== null) {
             $totalLoadAmount -= $excludedLastLoad['amount'];
         }
@@ -237,15 +213,12 @@ class GLProcessor
             $totalUnloadAmount -= $excludedFirstUnload['amount'];
         }
 
-        // Calculate net totals using running totals collected earlier, after adjustments.
         $netLoadAmount = $totalLoadAmount - $totalLoadReversalAmount;
         $netUnloadAmount = $totalUnloadAmount - $totalUnloadReversalAmount;
-        
-        // Get date range: use min/max datetimes collected earlier (including reversals)
+
         $firstLoadDateTime = $minDatetime ?? new DateTime();
         $lastUnloadDateTime = $maxDatetime ?? new DateTime();
-        
-        // Enhanced logging
+
         error_log("GL Processing - Multiple Cycles with Reversals:");
         error_log("  LOADS:");
         error_log("    Normal loads found: " . (count($loads) + ($excludedLastLoad ? 1 : 0)));
@@ -271,21 +244,17 @@ class GLProcessor
             $netUnloadAmount,
             $firstLoadDateTime,
             $lastUnloadDateTime,
-            count($loads) + count($loadReversals),  // Total load count including reversals
-            count($unloads) + count($unloadReversals),  // Total unload count including reversals
+            count($loads) + count($loadReversals),
+            count($unloads) + count($unloadReversals),
             $excludedFirstUnload ? $excludedFirstUnload['amount'] : null,
             $excludedLastLoad ? $excludedLastLoad['amount'] : null
         );
     }
-    
-    /**
-     * Check if a transaction description indicates a reversal
-     */
+
     private function isReversalTransaction(string $description): bool
     {
         $descriptionLower = strtolower($description);
-        
-        // Check for common reversal indicators
+
         return (
             strpos($descriptionLower, 'reversal') !== false ||
             strpos($descriptionLower, 'rvsl') !== false ||
@@ -308,58 +277,51 @@ class GLProcessor
     
     private function extractAmount(array $row, string $type): float
     {
-        // For LOAD, amount is in DEBIT column
-        // For UNLOAD, amount is in CREDIT column
+        // Business rule: LOAD in DEBIT column, UNLOAD in CREDIT column
         $columnIndex = ($type === 'load') ? $this->debitColumn : $this->creditColumn;
-        
+
         if ($columnIndex !== null && isset($row[$columnIndex])) {
             $amount = $row[$columnIndex];
-            // Remove currency symbols, commas, and spaces
             $amount = preg_replace('/[^0-9.\-]/', '', $amount);
             return (float) $amount;
         }
-        
+
         return 0.0;
     }
-    
+
     private function extractDateTime(array $row): DateTime
     {
-        // First try to extract from description (includes time)
         $description = $row[$this->descriptionColumn];
-        
-        // Pattern 1: 2025-10-09 / 08:29AM
+
         if (preg_match('/(\d{4}-\d{2}-\d{2})\s*\/\s*(\d{1,2}:\d{2}[AP]M)/', $description, $matches)) {
             $dateStr = $matches[1] . ' ' . $matches[2];
             return $this->parseDateTime($dateStr);
         }
-        
-        // Pattern 2: 10/10/2025 / 04:31PM
+
         if (preg_match('/(\d{1,2}\/\d{1,2}\/\d{4})\s*\/\s*(\d{1,2}:\d{2}[AP]M)/', $description, $matches)) {
             $dateStr = $matches[1] . ' ' . $matches[2];
             return $this->parseDateTime($dateStr);
         }
-        
-        // Fallback: use date column if available
+
         if ($this->dateColumn !== null && isset($row[$this->dateColumn])) {
             return $this->parseDateTime($row[$this->dateColumn]);
         }
-        
+
         return new DateTime();
     }
-    
+
     private function parseDateTime(string $dateString): DateTime
     {
         $dateString = trim($dateString);
-        
-        // Try various formats
+
         $formats = [
-            'Y-m-d H:iA',           // 2025-10-09 08:29AM
-            'm/d/Y H:iA',           // 10/10/2025 04:31PM
-            'd/m/Y H:iA',           // 09/10/2025 04:31PM
-            'Y-m-d h:iA',           // 2025-10-09 8:29AM
-            'm/d/Y h:iA',           // 10/10/2025 4:31PM
-            'd/m/Y h:iA',           // 09/10/2025 4:31PM
-            'd-M-y',                // 09-Oct-25
+            'Y-m-d H:iA',
+            'm/d/Y H:iA',
+            'd/m/Y H:iA',
+            'Y-m-d h:iA',
+            'm/d/Y h:iA',
+            'd/m/Y h:iA',
+            'd-M-y',
             'Y-m-d H:i:s',
             'd/m/Y H:i:s',
             'm/d/Y H:i:s',
@@ -367,15 +329,14 @@ class GLProcessor
             'd/m/Y',
             'm/d/Y',
         ];
-        
+
         foreach ($formats as $format) {
             $date = DateTime::createFromFormat($format, $dateString);
             if ($date !== false) {
                 return $date;
             }
         }
-        
-        // Fallback
+
         try {
             return new DateTime($dateString);
         } catch (Exception $e) {
@@ -383,19 +344,11 @@ class GLProcessor
         }
     }
 
-    /**
-     * Get the headers array
-     * @return array
-     */
     public function getHeaders(): array
     {
         return $this->headers;
     }
 
-    /**
-     * Get the data array (without headers)
-     * @return array
-     */
     public function getData(): array
     {
         return $this->data;

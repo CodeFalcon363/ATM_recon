@@ -4,6 +4,9 @@ namespace App\Models;
 
 use DateTime;
 
+/**
+ * Stores aggregated load/unload totals from GL with multi-cycle support
+ */
 class LoadUnloadData
 {
     private $totalLoadAmount;

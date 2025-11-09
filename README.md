@@ -1,10 +1,8 @@
 # ATM GL and FEP Reconciliation System
 
-A high-performance PHP web application that reconciles ATM General Ledger (GL) and Front-End Processor (FEP) files to identify matched transactions, discrepancies, and reversed duplicates across multi-cycle operational periods.
+A PHP web application that reconciles ATM General Ledger (GL) and Front-End Processor (FEP) Excel exports to identify matched transactions, discrepancies, and reversed duplicates across multi-cycle operational periods.
 
-**Supports:** CSV and Excel (.xlsx) formats with automatic detection
-**Performance:** Up to 40x faster with CSV format
-**Last Updated:** 2025-11-04
+**Last Updated:** 2025-11-03
 
 ## What This System Does
 
@@ -69,18 +67,15 @@ http://localhost:8000
 ```
 
 4. **Upload files:**
-   - Select your GL file (.xlsx or .csv)
-   - Select your FEP file (.xlsx or .csv)
+   - Select your GL Excel file (.xlsx)
+   - Select your FEP Excel file (.xlsx)
    - Click "Process Files"
-
-   **💡 Tip:** Use CSV format for maximum speed (40x faster than Excel!)
 
 ### Production Deployment (Apache/XAMPP)
 
 1. Place in web directory (e.g., `C:\xampp\htdocs\ATM_recon`)
 2. Ensure Apache `mod_rewrite` is enabled
-3. **Access via:** `http://localhost/ATM_recon/public/` (or configure document root to `public/` folder)
-4. Configure PHP settings (in `.htaccess` or `.user.ini`):
+3. Configure PHP settings (in `.htaccess` or `.user.ini`):
    - `upload_max_filesize = 50M`
    - `post_max_size = 50M`
    - `max_execution_time = 300`
@@ -126,20 +121,13 @@ http://localhost:8000
 6. Display results and provide downloads
 ```
 
-### File Format Support
-
-**Supported Formats:** CSV (.csv) and Excel (.xlsx)
-- Automatic format detection
-- Format is preserved (CSV input → CSV output, Excel input → Excel output)
-- Identical processing logic for both formats
-
-### Required Columns (CSV or Excel)
+### Required Excel Columns
 
 **GL File must have:**
-- Description/Narration/Narrative column (contains "load"/"unload" keywords)
-- Credit/Credit_Amount column (for unload amounts)
-- Debit/Debit_Amount column (for load amounts)
-- Date/Transaction_Date column
+- Description/Narration column (contains "load"/"unload" keywords)
+- Credit column (for unload amounts)
+- Debit column (for load amounts)
+- Date column
 
 **FEP File must have:**
 - Response Meaning or Response Code column (contains "approved" or "00"/"0")
@@ -147,8 +135,6 @@ http://localhost:8000
 - Request Date column
 - Amount column
 - Transaction Type column (contains "INITIAL" or "REVERSAL")
-
-**Note:** Column detection is flexible and works with various naming conventions used in different banking systems.
 
 ## Understanding the Results
 
@@ -177,13 +163,13 @@ When the system detects multiple load/unload cycles, you'll see:
 
 ### Downloads
 
-All downloads are memory-optimized files with minimal columns (format matches input):
-- `gl_processed` - Processed GL with only relevant columns
-- `fep_processed` - Filtered and processed FEP transactions
-- `matched_transactions` - Successfully matched GL↔FEP transactions
-- `gl_not_on_fep` - GL transactions missing from FEP (with raw values)
-- `fep_not_on_gl` - FEP transactions missing from GL
-- `nilled_gl_duplicates` - GL reversal pairs (informational)
+All downloads are memory-optimized Excel files with minimal columns:
+- `gl_processed.xlsx` - Processed GL with only relevant columns
+- `fep_processed.xlsx` - Filtered and processed FEP transactions
+- `matched_transactions.xlsx` - Successfully matched GL↔FEP transactions
+- `gl_not_on_fep.xlsx` - GL transactions missing from FEP (with raw values)
+- `fep_not_on_gl.xlsx` - FEP transactions missing from GL
+- `nilled_gl_duplicates.xlsx` - GL reversal pairs (informational)
 
 ## Debugging Tools
 
@@ -201,8 +187,7 @@ All downloads are memory-optimized files with minimal columns (format matches in
 
 ### Technology Stack
 - **PHP 7.4+** with PSR-4 autoloading (`App\` → `src/`)
-- **Native CSV parsing** for high-performance CSV processing
-- **PhpSpreadsheet ^1.29** for Excel file manipulation (when needed)
+- **PhpSpreadsheet ^1.29** for Excel file manipulation
 - **PHPUnit 9.6** for testing
 - **Pure HTML/CSS/JS** frontend (no framework)
 
@@ -213,14 +198,7 @@ ATM_recon/
 ├── public/              # Web entry points (index, process, download, debug)
 ├── src/
 │   ├── Models/          # Data models (LoadUnloadData, ReconciliationResult, TransactionMatch)
-│   └── Services/        # Business logic
-│       ├── CSVReader.php             # Fast native CSV reader
-│       ├── ExcelReader.php           # Excel/XLSX reader wrapper
-│       ├── UniversalFileReader.php   # Auto-detects CSV vs Excel
-│       ├── GLProcessor.php           # GL transaction processing
-│       ├── FEPProcessor.php          # FEP transaction filtering
-│       ├── TransactionMatcher.php    # RRN-based matching
-│       └── ReconciliationService.php # Main orchestration service
+│   └── Services/        # Business logic (GLProcessor, FEPProcessor, TransactionMatcher, ReconciliationService)
 ├── tests/               # PHPUnit tests
 ├── vendor/              # Composer dependencies
 └── tmp/                 # Temporary file storage
@@ -246,47 +224,17 @@ Tests cover:
 - RRN extraction and transaction matching
 - End-to-end reconciliation scenarios
 
-## Performance & Optimization
-
-### CSV vs Excel Performance
-
-The system supports both CSV and Excel formats with identical accuracy, but CSV offers significantly better performance:
-
-| Format | Speed | Memory Usage | Processing Time* |
-|--------|-------|--------------|------------------|
-| **CSV** | **40.6x faster** | **10 MB** | ~0.12 seconds |
-| Excel (XLSX) | Baseline | 72 MB | ~4.86 seconds |
-
-**Memory Efficiency:** CSV uses **86% less memory** than Excel
-**Time Saved:** ~4.7 seconds per reconciliation with CSV
-
-*Based on real-world benchmark with 1,649 GL rows + 1,716 FEP rows
-
-### Performance Optimizations Applied
-
-1. **Native CSV Processing**: Direct PHP parsing (no PhpSpreadsheet overhead)
-2. **Smart Column Detection**: Handles various naming conventions (CREDIT vs CREDIT_AMOUNT)
-3. **Memory Management**: Immediate object disposal with explicit garbage collection
-4. **Optimized Algorithms**: O(n) duplicate detection, streaming file downloads
-5. **Reduced I/O**: Single-pass file loading, format-aware processing
-
-### System Limits
+## Performance Notes
 
 - **File size limit**: 50MB (configurable in `.htaccess`)
 - **Execution timeout**: 300 seconds for large files
-- **Memory limit**: 256MB (sufficient for CSV; adjust for very large Excel files)
+- **Memory limit**: 256MB (adjust if processing very large files)
+- **Memory optimization**: Objects freed immediately, streaming downloads, explicit GC
 
-### Recommendations
-
-✅ **Best Practice:** Use CSV format for:
-- Regular/automated reconciliations
-- Large files (>10K rows)
-- Maximum processing speed
-
-📊 **Excel Format:** Use when:
-- You need formatted output with colors/styles
-- Compatibility with existing Excel-only workflows
-- Files are already in Excel format and conversion isn't convenient
+For very large files (>100K rows), consider:
+- Exporting to CSV format instead of Excel
+- Using streaming libraries like Spout
+- Increasing PHP memory limit
 
 ## Contributing
 

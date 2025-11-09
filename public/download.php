@@ -6,15 +6,16 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 session_start();
 
-if (!isset($_GET['file']) || !in_array($_GET['file'], ['gl', 'fep', 'matched', 'gl_not_fep', 'fep_not_gl', 'gl_in_filtered'])) {
+// Note: Temp file cleanup handled by cron job for better performance at scale
+
+if (!isset($_GET['file']) || !in_array($_GET['file'], ['gl', 'fep', 'matched', 'gl_not_fep', 'fep_not_gl', 'gl_in_filtered', 'nilled_gl_duplicates'])) {
     header('Location: index.php');
     exit;
 }
 
 $fileType = $_GET['file'];
 
-// Handle transaction match downloads
-if (in_array($fileType, ['matched', 'gl_not_fep', 'fep_not_gl', 'gl_in_filtered'])) {
+if (in_array($fileType, ['matched', 'gl_not_fep', 'fep_not_gl', 'gl_in_filtered', 'nilled_gl_duplicates'])) {
     if (!isset($_SESSION['transaction_match'])) {
         die('Transaction match data not found. Please process the files again.');
     }
@@ -30,7 +31,6 @@ if (in_array($fileType, ['matched', 'gl_not_fep', 'fep_not_gl', 'gl_in_filtered'
         $origGlHeaders = $transactionMatch->getGlHeaders();
         $origFepHeaders = $transactionMatch->getFepHeaders();
 
-        // helper to find header index by keywords
         $findIdx = function(array $headers, array $keywords) {
             foreach ($headers as $i => $h) {
                 $hl = strtolower(trim((string)$h));
@@ -41,7 +41,6 @@ if (in_array($fileType, ['matched', 'gl_not_fep', 'fep_not_gl', 'gl_in_filtered'
             return null;
         };
 
-        // Determine indices for GL and FEP
         $glUserIdx = $findIdx($origGlHeaders, ['user id','userid','user']);
         $glCreditIdx = $findIdx($origGlHeaders, ['credit']);
         $glDebitIdx = $findIdx($origGlHeaders, ['debit']);
@@ -165,12 +164,7 @@ if (in_array($fileType, ['matched', 'gl_not_fep', 'fep_not_gl', 'gl_in_filtered'
 
         $entries = $transactionMatch->getGlNotOnFep();
         $origGlHeaders = $transactionMatch->getGlHeaders();
-        $maxGlCols = 0;
-        foreach ($entries as $e) {
-            if (isset($e['gl_row']) && is_array($e['gl_row'])) $maxGlCols = max($maxGlCols, count($e['gl_row']));
-        }
 
-        // Export only minimal GL columns: RRN, User ID, Credit, Debit, Date, Description
         $findIdx = function(array $headers, array $keywords) {
             foreach ($headers as $i => $h) {
                 $hl = strtolower(trim((string)$h));
@@ -192,7 +186,6 @@ if (in_array($fileType, ['matched', 'gl_not_fep', 'fep_not_gl', 'gl_in_filtered'
 
         $row = 2;
         foreach ($entries as $txn) {
-            // Prefer raw values captured during matching; fall back to inspecting gl_row
             $creditRaw = $txn['credit_raw'] ?? null;
             $debitRaw = $txn['debit_raw'] ?? null;
             $userVal = '';
@@ -202,7 +195,6 @@ if (in_array($fileType, ['matched', 'gl_not_fep', 'fep_not_gl', 'gl_in_filtered'
                 if ($creditRaw === null) $creditRaw = ($glCreditIdx !== null && isset($glRow[$glCreditIdx])) ? $glRow[$glCreditIdx] : '';
                 if ($debitRaw === null) $debitRaw = ($glDebitIdx !== null && isset($glRow[$glDebitIdx])) ? $glRow[$glDebitIdx] : '';
             } else {
-                // if we have raw values but not user id, attempt to get user id from gl_row
                 if (isset($txn['gl_row']) && is_array($txn['gl_row'])) {
                     $glRow = array_values($txn['gl_row']);
                     $userVal = ($glUserIdx !== null && isset($glRow[$glUserIdx])) ? $glRow[$glUserIdx] : '';
@@ -223,8 +215,8 @@ if (in_array($fileType, ['matched', 'gl_not_fep', 'fep_not_gl', 'gl_in_filtered'
         }
 
         $fileName = 'GL_Not_on_FEP_' . date('Y-m-d_His') . '.xlsx';
-        
-    } else { // fep_not_gl
+
+    } elseif ($fileType === 'fep_not_gl') {
         $sheet->setTitle('FEP Not on GL');
 
         $entries = $transactionMatch->getFepNotOnGl();
@@ -273,42 +265,108 @@ if (in_array($fileType, ['matched', 'gl_not_fep', 'fep_not_gl', 'gl_in_filtered'
         }
 
         $fileName = 'FEP_Not_on_GL_' . date('Y-m-d_His') . '.xlsx';
-    }
-    
-        if ($fileType === 'nilled_gl_duplicates') {
-            $sheet->setTitle('NILled GL Duplicates');
-            $entries = $transactionMatch->getNilledGlDuplicates();
-            // find max columns
-            $maxCols = 0;
-            foreach ($entries as $e) { if (is_array($e)) $maxCols = max($maxCols, count($e)); }
-            $headers = [];
-            for ($i=0;$i<$maxCols;$i++) { $headers[] = 'GL_'.$i; }
-            $sheet->fromArray($headers, null, 'A1');
+    } elseif ($fileType === 'nilled_gl_duplicates') {
+        $sheet->setTitle('NILled GL Duplicates');
+        $entries = $transactionMatch->getNilledGlDuplicates();
+        $origGlHeaders = $transactionMatch->getGlHeaders();
 
-            $row = 2;
-            foreach ($entries as $txn) {
-                $out = is_array($txn) ? array_values($txn) : [$txn];
-                // pad
-                for ($i=count($out); $i<$maxCols; $i++) $out[] = '';
-                $sheet->fromArray($out, null, 'A' . $row);
-                $row++;
+        $findIdx = function(array $headers, array $keywords) {
+            foreach ($headers as $i => $h) {
+                $hl = strtolower(trim((string)$h));
+                foreach ($keywords as $k) {
+                    if ($k !== '' && strpos($hl, $k) !== false) return $i;
+                }
+            }
+            return null;
+        };
+
+        $glUserIdx = $findIdx($origGlHeaders, ['user id','userid','user']);
+
+        $headersOut = ['RRN','GL User ID','Credit','Debit','Date','Description'];
+        $sheet->fromArray($headersOut, null, 'A1');
+
+        $row = 2;
+        foreach ($entries as $txn) {
+            $userVal = '';
+            if (isset($txn['gl_row']) && $glUserIdx !== null && isset($txn['gl_row'][$glUserIdx])) {
+                $userVal = $txn['gl_row'][$glUserIdx];
             }
 
-            $fileName = 'NILled_GL_Duplicates_' . date('Y-m-d_His') . '.xlsx';
+            $creditRaw = isset($txn['credit_raw']) ? $txn['credit_raw'] : '';
+            $debitRaw = isset($txn['debit_raw']) ? $txn['debit_raw'] : '';
+
+            $creditNum = ($creditRaw !== '' && $creditRaw !== null) ? (float)$creditRaw : 0.0;
+            $debitNum = ($debitRaw !== '' && $debitRaw !== null) ? (float)$debitRaw : 0.0;
+
+            $out = [
+                $txn['rrn'] ?? '',
+                $userVal,
+                $creditNum,
+                $debitNum,
+                $txn['date'] ?? '',
+                $txn['description'] ?? ''
+            ];
+
+            $sheet->fromArray($out, null, 'A' . $row);
+            $row++;
         }
-    
-    // Output the file
-    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    header('Content-Disposition: attachment; filename="' . $fileName . '"');
-    header('Cache-Control: must-revalidate');
-    header('Pragma: public');
-    
-    $writer = new Xlsx($spreadsheet);
-    $writer->save('php://output');
-    exit;
+
+        $fileName = 'NILled_GL_Duplicates_' . date('Y-m-d_His') . '.xlsx';
+    }
+
+    $inputFormat = 'xlsx';
+    if (isset($_SESSION['processed_gl']) && file_exists($_SESSION['processed_gl'])) {
+        $glPath = $_SESSION['processed_gl'];
+        $ext = strtolower(pathinfo($glPath, PATHINFO_EXTENSION));
+        if ($ext === 'csv') {
+            $inputFormat = 'csv';
+        }
+    }
+
+    if ($inputFormat === 'csv') {
+        $fileName = str_replace('.xlsx', '.csv', $fileName);
+
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="' . $fileName . '"');
+        header('Cache-Control: max-age=0');
+
+        $output = fopen('php://output', 'w');
+
+        $highestRow = $sheet->getHighestRow();
+        $highestColumn = $sheet->getHighestColumn();
+        $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestColumn);
+
+        for ($row = 1; $row <= $highestRow; $row++) {
+            $rowData = [];
+            for ($col = 1; $col <= $highestColumnIndex; $col++) {
+                $cell = $sheet->getCellByColumnAndRow($col, $row);
+                $value = $cell->getValue();
+                if ($value instanceof \DateTime) {
+                    $value = $value->format('Y-m-d H:i:s');
+                }
+                $rowData[] = $value;
+            }
+            fputcsv($output, $rowData);
+        }
+
+        fclose($output);
+        unset($spreadsheet, $sheet);
+        gc_collect_cycles();
+        exit;
+    } else {
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $fileName . '"');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        unset($spreadsheet, $sheet, $writer);
+        gc_collect_cycles();
+        exit;
+    }
 }
 
-// Handle GL and FEP file downloads
 $sessionKey = 'processed_' . $fileType;
 
 if (!isset($_SESSION[$sessionKey]) || !file_exists($_SESSION[$sessionKey])) {
@@ -317,17 +375,11 @@ if (!isset($_SESSION[$sessionKey]) || !file_exists($_SESSION[$sessionKey])) {
 
 $filePath = $_SESSION[$sessionKey];
 
-// Detect file format from stored file
 $fileExtension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
 $isCSV = ($fileExtension === 'csv');
 
 $fileName = ($fileType === 'gl' ? 'Processed_GL_File' : 'Processed_FEP_File') . '_' . date('Y-m-d_His') . '.' . $fileExtension;
 
-// OPTIMIZATION: Load file once instead of twice (header + full load)
-// Original: Loaded twice (~500ms + file I/O overhead)
-// Optimized: Single load with column filtering (~300ms)
-
-// For CSV files, send directly without column filtering (already processed)
 if ($isCSV) {
     header('Content-Type: text/csv');
     header('Content-Disposition: attachment; filename="' . $fileName . '"');
