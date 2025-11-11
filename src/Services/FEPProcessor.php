@@ -19,6 +19,7 @@ class FEPProcessor
     private $amountColumn;
     private $tranTypeColumn;
     private $filteredOutTransactions = [];
+    private $transactionsAfterDateRange = [];
     
     public function __construct(array $data)
     {
@@ -297,6 +298,7 @@ class FEPProcessor
             if ($rowDate > $endDate) {
                 $afterEnd++;
                 $filtered[] = $row;
+                $this->transactionsAfterDateRange[] = $row; // Track separately for variance calculation
                 continue;
             }
             
@@ -344,7 +346,33 @@ class FEPProcessor
     {
         return $this->filteredOutTransactions;
     }
-    
+
+    /**
+     * Get transactions that occur after the date range (after lastUnloadDateTime)
+     * These are valid FEP transactions (approved, deduplicated) that occur after cash count
+     */
+    public function getTransactionsAfterDateRange(): array
+    {
+        return $this->transactionsAfterDateRange;
+    }
+
+    /**
+     * Calculate total amount of transactions after the date range
+     * Used for variance calculation: Expected_cash = Available_cash - Transactions_after_cash_count
+     */
+    public function getTransactionsAfterDateRangeTotal(): float
+    {
+        $total = 0.0;
+
+        foreach ($this->transactionsAfterDateRange as $row) {
+            $total += isset($row['__parsed_amount']) ? $row['__parsed_amount'] : 0.0;
+        }
+
+        error_log("  FEP Transactions After Date Range Total: " . number_format($total, 2));
+
+        return $total;
+    }
+
     private function parseDateTime(string $dateString): DateTime
     {
         $dateString = trim($dateString);

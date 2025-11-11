@@ -238,7 +238,13 @@ class GLProcessor
         if ($excludedLastLoad) {
             error_log("  Excluded last load: " . number_format($excludedLastLoad['amount'], 2));
         }
-        
+
+        // Extract GL Closing Balance from last row
+        $closingBalance = $this->extractClosingBalance();
+        if ($closingBalance !== null) {
+            error_log("  GL Closing Balance: " . number_format($closingBalance, 2));
+        }
+
         return new LoadUnloadData(
             $netLoadAmount,
             $netUnloadAmount,
@@ -247,7 +253,8 @@ class GLProcessor
             count($loads) + count($loadReversals),
             count($unloads) + count($unloadReversals),
             $excludedFirstUnload ? $excludedFirstUnload['amount'] : null,
-            $excludedLastLoad ? $excludedLastLoad['amount'] : null
+            $excludedLastLoad ? $excludedLastLoad['amount'] : null,
+            $closingBalance
         );
     }
 
@@ -352,5 +359,79 @@ class GLProcessor
     public function getData(): array
     {
         return $this->data;
+    }
+
+    /**
+     * Extract closing balance from last row of GL file
+     * Looks for "RUNNING_BALANCE" or "RUNNING BALANCE" column
+     * Inverts sign: (1000) becomes +1000, 1000 becomes -1000
+     */
+    private function extractClosingBalance(): ?float
+    {
+        // Find RUNNING_BALANCE column
+        $runningBalanceColumn = null;
+        foreach ($this->headers as $index => $header) {
+            $headerLower = strtolower(trim($header));
+            if (strpos($headerLower, 'running') !== false &&
+                (strpos($headerLower, 'balance') !== false || strpos($headerLower, 'bal') !== false)) {
+                $runningBalanceColumn = $index;
+                break;
+            }
+        }
+
+        if ($runningBalanceColumn === null) {
+            error_log("  Warning: RUNNING_BALANCE column not found in GL file");
+            return null;
+        }
+
+        // Get last row with data
+        $lastRow = null;
+        for ($i = count($this->data) - 1; $i >= 0; $i--) {
+            $row = $this->data[$i];
+            if (is_array($row) && count($row) > 0) {
+                $row = array_values($row);
+                // Check if this row has any meaningful data
+                $hasData = false;
+                foreach ($row as $cell) {
+                    if ($cell !== null && trim($cell) !== '') {
+                        $hasData = true;
+                        break;
+                    }
+                }
+                if ($hasData) {
+                    $lastRow = $row;
+                    break;
+                }
+            }
+        }
+
+        if ($lastRow === null || !isset($lastRow[$runningBalanceColumn])) {
+            error_log("  Warning: Could not find last row with running balance");
+            return null;
+        }
+
+        $balanceValue = trim($lastRow[$runningBalanceColumn]);
+
+        // Parse the balance - handle both (1000) and 1000 formats
+        $isNegative = false;
+
+        // Check if it's in parentheses format (1000)
+        if (preg_match('/^\(([0-9,\.]+)\)$/', $balanceValue, $matches)) {
+            $balanceValue = $matches[1];
+            $isNegative = true;
+        }
+
+        // Remove commas and parse
+        $balanceValue = str_replace(',', '', $balanceValue);
+        $balance = (float) $balanceValue;
+
+        // Invert the sign
+        if ($isNegative) {
+            // (1000) becomes +1000
+            return abs($balance);
+        } else {
+            // 1000 becomes -1000
+            return -abs($balance);
+        }
     }
 }

@@ -17,7 +17,8 @@ class LoadUnloadData
     private $unloadCount;
     private $excludedFirstUnload;
     private $excludedLastLoad;
-    
+    private $closingBalance;
+
     public function __construct(
         float $totalLoadAmount,
         float $totalUnloadAmount,
@@ -26,7 +27,8 @@ class LoadUnloadData
         int $loadCount,
         int $unloadCount,
         ?float $excludedFirstUnload = null,
-        ?float $excludedLastLoad = null
+        ?float $excludedLastLoad = null,
+        ?float $closingBalance = null
     ) {
         $this->totalLoadAmount = $totalLoadAmount;
         $this->totalUnloadAmount = $totalUnloadAmount;
@@ -36,6 +38,7 @@ class LoadUnloadData
         $this->unloadCount = $unloadCount;
         $this->excludedFirstUnload = $excludedFirstUnload;
         $this->excludedLastLoad = $excludedLastLoad;
+        $this->closingBalance = $closingBalance;
     }
     
     public function getLoadAmount(): float
@@ -81,5 +84,10 @@ class LoadUnloadData
     public function getExcludedLastLoad(): ?float
     {
         return $this->excludedLastLoad;
+    }
+
+    public function getClosingBalance(): ?float
+    {
+        return $this->closingBalance;
     }
 }

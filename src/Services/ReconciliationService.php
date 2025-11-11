@@ -78,6 +78,9 @@ class ReconciliationService
         $successfulTransactions = $fepProcessor->calculateTotalAmount();
         $transactionCount = $fepProcessor->getTransactionCount();
 
+        // Get transactions after date range for variance calculation
+        $transactionsAfterCashCount = $fepProcessor->getTransactionsAfterDateRangeTotal();
+
         error_log("FEP Total Amount: " . $successfulTransactions);
 
         $filteredOutFepData = $fepProcessor->getFilteredOutTransactions();
@@ -130,7 +133,9 @@ class ReconciliationService
             $loadUnloadData->getLoadCount(),
             $loadUnloadData->getUnloadCount(),
             $loadUnloadData->getExcludedFirstUnload(),
-            $loadUnloadData->getExcludedLastLoad()
+            $loadUnloadData->getExcludedLastLoad(),
+            $loadUnloadData->getClosingBalance(),
+            $transactionsAfterCashCount
         );
     }
     

@@ -400,7 +400,84 @@ try {
                 <div class="status-badge status-<?php echo strtolower(str_replace('_', '-', $result->getStatus())); ?>">
                     <?php echo htmlspecialchars($result->getMessage()); ?>
                 </div>
-                
+
+                <?php if ($result->getClosingBalance() !== null): ?>
+                <!-- GL Variance Section (New) -->
+                <div class="details-section" style="background: <?php
+                    if (abs($result->getGLVariance()) < 0.01) {
+                        echo '#d4edda';
+                    } elseif ($result->getGLVariance() > 0) {
+                        echo '#fff3cd';
+                    } else {
+                        echo '#f8d7da';
+                    }
+                ?>; border-left-color: <?php
+                    if (abs($result->getGLVariance()) < 0.01) {
+                        echo '#28a745';
+                    } elseif ($result->getGLVariance() > 0) {
+                        echo '#ffc107';
+                    } else {
+                        echo '#dc3545';
+                    }
+                ?>; margin-bottom: 30px;">
+                    <h3 style="color: <?php
+                        if (abs($result->getGLVariance()) < 0.01) {
+                            echo '#155724';
+                        } elseif ($result->getGLVariance() > 0) {
+                            echo '#856404';
+                        } else {
+                            echo '#721c24';
+                        }
+                    ?>;">GL Balance Analysis</h3>
+
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+                        <div style="font-size: 20px; font-weight: bold; color: <?php
+                            if (abs($result->getGLVariance()) < 0.01) {
+                                echo '#155724';
+                            } elseif ($result->getGLVariance() > 0) {
+                                echo '#856404';
+                            } else {
+                                echo '#721c24';
+                            }
+                        ?>;">
+                            <?php echo htmlspecialchars($result->getGLVarianceStatus()); ?>
+                        </div>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">GL Balance (Closing):</span>
+                        <span class="detail-value">₦<?php echo number_format($result->getClosingBalance(), 2); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Available Cash (Last Load Excluded):</span>
+                        <span class="detail-value">₦<?php echo number_format($result->getAvailableCash(), 2); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Transactions After Cash Count (Before EOD):</span>
+                        <span class="detail-value">₦<?php echo number_format($result->getTransactionsAfterCashCount(), 2); ?></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Expected Cash:</span>
+                        <span class="detail-value">₦<?php echo number_format($result->getExpectedCash(), 2); ?></span>
+                    </div>
+                    <div class="detail-row" style="background: <?php echo abs($result->getGLVariance()) < 0.01 ? '#e8f5e9' : '#fef3cd'; ?>; padding: 15px; margin-top: 10px; border-radius: 8px;">
+                        <span class="detail-label" style="font-size: 16px;"><strong>Variance (GL Balance - Expected Cash):</strong></span>
+                        <span class="detail-value" style="font-size: 18px; color: <?php
+                            if (abs($result->getGLVariance()) < 0.01) {
+                                echo '#28a745';
+                            } elseif ($result->getGLVariance() > 0) {
+                                echo '#ffc107';
+                            } else {
+                                echo '#dc3545';
+                            }
+                        ?>;">
+                            ₦<?php echo number_format($result->getGLVariance(), 2); ?>
+                        </span>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <!-- Load to Load Reconciliation -->
                 <div class="info-grid">
                     <div class="info-item">
                         <div class="info-label">Total Load Amount</div>
@@ -427,28 +504,28 @@ try {
                     </div>
                     
                     <div class="info-item">
-                        <div class="info-label">GL Difference</div>
+                        <div class="info-label">NET LOAD PAID OUT</div>
                         <div class="info-value">
                             ₦<?php echo number_format($result->getLoadAmount() - $result->getUnloadAmount(), 2); ?>
                         </div>
                     </div>
-                    
+
                     <div class="info-item">
-                        <div class="info-label">FEP Transactions</div>
+                        <div class="info-label">Valid FEP Transactions</div>
                         <div class="info-value amount">
                             ₦<?php echo number_format($result->getSuccessfulTransactions(), 2); ?>
                         </div>
                     </div>
-                    
+
                     <div class="info-item">
-                        <div class="info-label">Transaction Count</div>
+                        <div class="info-label">Valid Transaction Count after FEP processing</div>
                         <div class="info-value">
                             <?php echo number_format($result->getTransactionCount()); ?>
                         </div>
                     </div>
-                    
+
                     <div class="info-item">
-                        <div class="info-label">Variance</div>
+                        <div class="info-label">VARIANCE (Net load - Valid FEP)</div>
                         <div class="info-value <?php echo $result->getDifference() < 0 ? 'negative' : ($result->getDifference() > 0 ? 'positive' : ''); ?>">
                             ₦<?php echo number_format($result->getDifference(), 2); ?>
                         </div>
