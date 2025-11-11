@@ -16,66 +16,13 @@ use App\Services\TransactionMatcher;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transaction Matching Debug</title>
+    <link rel="stylesheet" href="assets/css/main.css">
     <style>
-        :root {
-            /* Light mode (default) */
-            --bg-gradient-start: #667eea;
-            --bg-gradient-end: #764ba2;
-            --card-bg: #ffffff;
-            --text-primary: #333333;
-            --text-secondary: #666666;
-            --border-color: #ddd;
-            --input-bg: #ffffff;
-            --shadow-color: rgba(0, 0, 0, 0.3);
-            --shadow-hover: rgba(102, 126, 234, 0.4);
-            --section-bg: #f8f9fa;
-            --accent-color: #667eea;
-            --info-bg: #e7f3ff;
-            --info-border: #2196F3;
-            --info-text: #333333;
-            --error-bg: #fee;
-            --error-border: #c33;
-            --error-text: #c33;
-            --table-border: #ddd;
-            --table-header-bg: #667eea;
-            --table-header-text: white;
-            --pre-bg: #f4f4f4;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-gradient-start: #1e293b;
-                --bg-gradient-end: #0f172a;
-                --card-bg: #1e293b;
-                --text-primary: #f1f5f9;
-                --text-secondary: #94a3b8;
-                --border-color: #334155;
-                --input-bg: #0f172a;
-                --shadow-color: rgba(0, 0, 0, 0.5);
-                --shadow-hover: rgba(102, 126, 234, 0.6);
-                --section-bg: #0f172a;
-                --accent-color: #818cf8;
-                --info-bg: #1e3a5f;
-                --info-border: #3b82f6;
-                --info-text: #93c5fd;
-                --error-bg: #7f1d1d;
-                --error-border: #ef4444;
-                --error-text: #fecaca;
-                --table-border: #334155;
-                --table-header-bg: #4338ca;
-                --table-header-text: #e0e7ff;
-                --pre-bg: #0f172a;
-            }
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* Page-specific styles for matching debug page */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-            min-height: 100vh;
             padding: 20px;
-            transition: background 0.3s ease;
         }
+        
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -85,77 +32,18 @@ use App\Services\TransactionMatcher;
             padding: 40px;
             transition: all 0.3s ease;
         }
-        h1 { color: var(--text-primary); margin-bottom: 30px; }
-        .upload-form { margin-bottom: 30px; }
+        .upload-form { 
+            margin-bottom: 30px; 
+        }
+        
         input[type="file"] {
             padding: 10px;
             margin-right: 10px;
-            background: var(--input-bg);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
         }
-        button {
-            padding: 12px 30px;
-            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px var(--shadow-hover);
-        }
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: var(--section-bg);
-            border-radius: 12px;
-        }
-        h2 { color: var(--accent-color); margin-bottom: 15px; font-size: 20px; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 12px;
-        }
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid var(--table-border);
-            color: var(--text-primary);
-        }
-        th {
-            background: var(--table-header-bg);
-            color: var(--table-header-text);
-            font-weight: 600;
-        }
-        .info-box {
-            background: var(--info-bg);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--info-border);
-            color: var(--info-text);
-        }
-        .error-box {
-            background: var(--error-bg);
-            color: var(--error-text);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--error-border);
-        }
-        pre {
-            background: var(--pre-bg);
-            padding: 10px;
-            border-radius: 5px;
-            overflow-x: auto;
-            font-size: 11px;
-            color: var(--text-primary);
+        h2 { 
+            color: var(--theme-primary); 
+            margin-bottom: 15px; 
+            font-size: 20px; 
         }
     </style>
 </head>
@@ -180,7 +68,7 @@ use App\Services\TransactionMatcher;
         <form method="POST" enctype="multipart/form-data" class="upload-form">
             <input type="file" name="gl_file" accept=".csv,.xlsx,.xls" required>
             <input type="file" name="fep_file" accept=".csv,.xlsx,.xls" required>
-            <button type="submit">Debug Matching</button>
+            <button type="submit" class="btn btn-primary">Debug Matching</button>
         </form>
         
         <?php

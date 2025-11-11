@@ -17,83 +17,16 @@ use App\Services\TransactionMatcher;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reconciliation Verification</title>
+    <link rel="stylesheet" href="assets/css/main.css">
     <style>
-        :root {
-            /* Light mode (default) */
-            --bg-gradient-start: #667eea;
-            --bg-gradient-end: #764ba2;
-            --card-bg: #ffffff;
-            --text-primary: #333333;
-            --text-secondary: #666666;
-            --border-color: #ddd;
-            --input-bg: #ffffff;
-            --shadow-color: rgba(0, 0, 0, 0.3);
-            --shadow-hover: rgba(102, 126, 234, 0.4);
-            --section-bg: #f8f9fa;
-            --accent-color: #667eea;
-            --table-border: #ddd;
-            --table-header-bg: #667eea;
-            --table-header-text: white;
-            --excluded-bg: #fee;
-            --excluded-text: #c33;
-            --included-bg: #efe;
-            --included-text: #2a2;
-            --info-box-bg: white;
-            --info-box-border: #667eea;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-gradient-start: #1e293b;
-                --bg-gradient-end: #0f172a;
-                --card-bg: #1e293b;
-                --text-primary: #f1f5f9;
-                --text-secondary: #94a3b8;
-                --border-color: #334155;
-                --input-bg: #0f172a;
-                --shadow-color: rgba(0, 0, 0, 0.5);
-                --shadow-hover: rgba(102, 126, 234, 0.6);
-                --section-bg: #0f172a;
-                --accent-color: #818cf8;
-                --table-border: #334155;
-                --table-header-bg: #4338ca;
-                --table-header-text: #e0e7ff;
-                --excluded-bg: #7f1d1d;
-                --excluded-text: #fca5a5;
-                --included-bg: #14532d;
-                --included-text: #86efac;
-                --info-box-bg: #0f172a;
-                --info-box-border: #4338ca;
-            }
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        /* Page-specific styles for verification page */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-            min-height: 100vh;
             padding: 20px;
-            transition: background 0.3s ease;
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            background: var(--card-bg);
-            border-radius: 20px;
-            box-shadow: 0 20px 60px var(--shadow-color);
-            padding: 40px;
-            transition: all 0.3s ease;
-        }
-
-        h1 {
-            color: var(--text-primary);
-            margin-bottom: 30px;
         }
 
         .section {
@@ -172,26 +105,16 @@ use App\Services\TransactionMatcher;
         input[type="file"] {
             padding: 10px;
             margin-right: 10px;
-            background: var(--input-bg);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
         }
 
-        button {
-            padding: 12px 30px;
-            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        tr.excluded {
+            background: var(--bg-error);
+            color: var(--text-error);
         }
 
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px var(--shadow-hover);
+        tr.included {
+            background: var(--bg-success);
+            color: var(--text-success);
         }
     </style>
 </head>
@@ -202,7 +125,7 @@ use App\Services\TransactionMatcher;
         <form method="POST" enctype="multipart/form-data" class="upload-form">
             <input type="file" name="gl_file" accept=".csv,.xlsx,.xls" required>
             <input type="file" name="fep_file" accept=".csv,.xlsx,.xls" required>
-            <button type="submit">Verify Processing</button>
+            <button type="submit" class="btn btn-primary">Verify Processing</button>
         </form>
 
         <?php

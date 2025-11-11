@@ -17,87 +17,16 @@ use App\Services\UniversalFileReader;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Excel File Inspector</title>
+    <link rel="stylesheet" href="assets/css/main.css">
     <style>
-        :root {
-            /* Light mode (default) */
-            --bg-gradient-start: #667eea;
-            --bg-gradient-end: #764ba2;
-            --card-bg: #ffffff;
-            --text-primary: #333333;
-            --text-secondary: #666666;
-            --text-tertiary: #555555;
-            --border-color: #ddd;
-            --input-bg: #ffffff;
-            --input-border: #ddd;
-            --shadow-color: rgba(0, 0, 0, 0.3);
-            --shadow-hover: rgba(102, 126, 234, 0.4);
-            --info-bg: #e7f3ff;
-            --info-border: #2196F3;
-            --info-text: #333333;
-            --error-bg: #fee;
-            --error-border: #c33;
-            --error-text: #c33;
-            --highlight-bg: #fff3cd;
-            --table-header-bg: #f8f9fa;
-            --table-header-text: #555;
-            --table-border: #ddd;
-            --pre-bg: #f4f4f4;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-gradient-start: #1e293b;
-                --bg-gradient-end: #0f172a;
-                --card-bg: #1e293b;
-                --text-primary: #f1f5f9;
-                --text-secondary: #94a3b8;
-                --text-tertiary: #cbd5e1;
-                --border-color: #334155;
-                --input-bg: #0f172a;
-                --input-border: #475569;
-                --shadow-color: rgba(0, 0, 0, 0.5);
-                --shadow-hover: rgba(102, 126, 234, 0.6);
-                --info-bg: #1e3a5f;
-                --info-border: #3b82f6;
-                --info-text: #93c5fd;
-                --error-bg: #7f1d1d;
-                --error-border: #ef4444;
-                --error-text: #fecaca;
-                --highlight-bg: #4a3c1a;
-                --table-header-bg: #0f172a;
-                --table-header-text: #cbd5e1;
-                --table-border: #334155;
-                --pre-bg: #0f172a;
-            }
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        /* Page-specific styles for debug page */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-            min-height: 100vh;
             padding: 20px;
-            transition: background 0.3s ease;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: var(--card-bg);
-            border-radius: 20px;
-            box-shadow: 0 20px 60px var(--shadow-color);
-            padding: 40px;
-            transition: all 0.3s ease;
-        }
-
-        h1 {
-            color: var(--text-primary);
-            margin-bottom: 10px;
         }
 
         .subtitle {
@@ -105,97 +34,31 @@ use App\Services\UniversalFileReader;
             margin-bottom: 30px;
         }
         
-        form {
-            margin-bottom: 30px;
-        }
-        
         .upload-section {
             margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            color: var(--text-tertiary);
-            font-weight: 600;
-            margin-bottom: 8px;
         }
 
         input[type="file"] {
             width: 100%;
             padding: 10px;
-            border: 2px dashed var(--border-color);
+            border: 2px dashed var(--border-medium);
             border-radius: 8px;
-            background: var(--input-bg);
-            color: var(--text-primary);
-        }
-
-        button {
-            padding: 12px 30px;
-            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px var(--shadow-hover);
-        }
-
-        .info-box {
-            background: var(--info-bg);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--info-border);
-            color: var(--info-text);
-        }
-
-        .error-box {
-            background: var(--error-bg);
-            color: var(--error-text);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--error-border);
         }
 
         .results {
             margin-top: 30px;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--table-border);
-            color: var(--text-primary);
-        }
-
-        th {
-            background: var(--table-header-bg);
-            font-weight: 600;
-            color: var(--table-header-text);
-        }
-
         .column-info {
-            background: var(--table-header-bg);
-            padding: 10px;
+            background: var(--bg-info);
+            padding: 15px;
             border-radius: 8px;
-            margin: 10px 0;
-            color: var(--text-primary);
+            margin-top: 15px;
+            color: var(--text-info);
         }
 
         .highlight {
-            background: var(--highlight-bg);
+            background: var(--bg-warning);
             padding: 2px 5px;
             border-radius: 3px;
         }
@@ -234,7 +97,7 @@ use App\Services\UniversalFileReader;
                 <label for="data_file">Select File (CSV or Excel)</label>
                 <input type="file" id="data_file" name="data_file" accept=".csv,.xlsx,.xls" required>
             </div>
-            <button type="submit">Inspect File</button>
+            <button type="submit" class="btn btn-primary">Inspect File</button>
         </form>
         
         <?php

@@ -143,75 +143,11 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reconciliation Results</title>
+    <link rel="stylesheet" href="assets/css/main.css">
     <style>
-        :root {
-            --bg-gradient-start: #667eea;
-            --bg-gradient-end: #764ba2;
-            --card-bg: #ffffff;
-            --text-primary: #333333;
-            --text-secondary: #666666;
-            --border-color: #dee2e6;
-            --shadow-color: rgba(0, 0, 0, 0.3);
-            --shadow-hover: rgba(102, 126, 234, 0.4);
-            --info-item-bg: #f8f9fa;
-            --info-item-border: #667eea;
-            --accent-color: #667eea;
-            --error-bg: #fee;
-            --error-border: #c33;
-            --error-text: #c33;
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --status-balanced-start: #11998e;
-            --status-balanced-end: #38ef7d;
-            --status-gl-missing-start: #f093fb;
-            --status-gl-missing-end: #f5576c;
-            --status-fep-missing-start: #fa709a;
-            --status-fep-missing-end: #fee140;
-            --back-btn-start: #a8a8a8;
-            --back-btn-end: #7a7a7a;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-gradient-start: #1e293b;
-                --bg-gradient-end: #0f172a;
-                --card-bg: #1e293b;
-                --text-primary: #f1f5f9;
-                --text-secondary: #94a3b8;
-                --border-color: #334155;
-                --shadow-color: rgba(0, 0, 0, 0.5);
-                --shadow-hover: rgba(102, 126, 234, 0.6);
-                --info-item-bg: #0f172a;
-                --info-item-border: #4338ca;
-                --accent-color: #818cf8;
-                --error-bg: #7f1d1d;
-                --error-border: #ef4444;
-                --error-text: #fecaca;
-                --success-color: #34d399;
-                --danger-color: #f87171;
-                --status-balanced-start: #047857;
-                --status-balanced-end: #10b981;
-                --status-gl-missing-start: #be123c;
-                --status-gl-missing-end: #fb7185;
-                --status-fep-missing-start: #ea580c;
-                --status-fep-missing-end: #fbbf24;
-                --back-btn-start: #475569;
-                --back-btn-end: #334155;
-            }
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        /* Page-specific styles for results page */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
-            min-height: 100vh;
             padding: 20px;
-            transition: background 0.3s ease;
         }
 
         .container {
@@ -220,16 +156,14 @@ try {
         }
 
         .result-card {
-            background: var(--card-bg);
+            background: var(--bg-card);
             border-radius: 20px;
-            box-shadow: 0 20px 60px var(--shadow-color);
+            box-shadow: 0 20px 60px var(--shadow-lg);
             padding: 40px;
             margin-bottom: 20px;
-            transition: all 0.3s ease;
         }
 
         h1 {
-            color: var(--text-primary);
             margin-bottom: 30px;
             font-size: 32px;
             text-align: center;
@@ -244,21 +178,19 @@ try {
             margin-bottom: 30px;
             text-align: center;
             width: 100%;
+            color: white;
         }
 
         .status-balanced {
-            background: linear-gradient(135deg, var(--status-balanced-start) 0%, var(--status-balanced-end) 100%);
-            color: white;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
         }
 
         .status-gl-missing {
-            background: linear-gradient(135deg, var(--status-gl-missing-start) 0%, var(--status-gl-missing-end) 100%);
-            color: white;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
 
         .status-fep-missing {
-            background: linear-gradient(135deg, var(--status-fep-missing-start) 0%, var(--status-fep-missing-end) 100%);
-            color: white;
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
         }
 
         .info-grid {
@@ -269,10 +201,10 @@ try {
         }
 
         .info-item {
-            background: var(--info-item-bg);
+            background: var(--bg-section);
             padding: 20px;
             border-radius: 12px;
-            border-left: 4px solid var(--info-item-border);
+            border-left: 4px solid var(--theme-primary);
         }
 
         .info-label {
@@ -291,15 +223,15 @@ try {
         }
 
         .info-value.amount {
-            color: var(--accent-color);
+            color: var(--theme-primary);
         }
 
         .info-value.negative {
-            color: var(--danger-color);
+            color: var(--status-error);
         }
 
         .info-value.positive {
-            color: var(--success-color);
+            color: var(--status-success);
         }
 
         .download-section {
@@ -313,7 +245,7 @@ try {
             flex: 1;
             min-width: 200px;
             padding: 15px 25px;
-            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            background: linear-gradient(135deg, var(--theme-primary) 0%, var(--accent-primary-dark) 100%);
             color: white;
             text-decoration: none;
             border-radius: 10px;
@@ -329,25 +261,11 @@ try {
         }
 
         .back-btn {
-            background: linear-gradient(135deg, var(--back-btn-start) 0%, var(--back-btn-end) 100%);
-        }
-
-        .error-card {
-            background: var(--error-bg);
-            color: var(--error-text);
-            padding: 20px;
-            border-radius: 12px;
-            border-left: 4px solid var(--error-border);
-            margin-bottom: 20px;
-        }
-
-        .error-card h2 {
-            margin-bottom: 10px;
-            font-size: 20px;
+            background: linear-gradient(135deg, #a8a8a8 0%, #7a7a7a 100%);
         }
 
         .details-section {
-            background: var(--info-item-bg);
+            background: var(--bg-section);
             padding: 20px;
             border-radius: 12px;
             margin-top: 20px;
@@ -363,7 +281,7 @@ try {
             display: flex;
             justify-content: space-between;
             padding: 10px 0;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-light);
         }
 
         .detail-row:last-child {
@@ -379,13 +297,28 @@ try {
             color: var(--text-primary);
             font-weight: 600;
         }
+        
+        /* Dark mode adjustments */
+        @media (prefers-color-scheme: dark) {
+            .status-balanced {
+                background: linear-gradient(135deg, #047857 0%, #10b981 100%);
+            }
+            
+            .status-gl-missing {
+                background: linear-gradient(135deg, #be123c 0%, #fb7185 100%);
+            }
+            
+            .status-fep-missing {
+                background: linear-gradient(135deg, #ea580c 0%, #fbbf24 100%);
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <?php if (!empty($errors)): ?>
             <div class="result-card">
-                <div class="error-card">
+                <div class="alert alert-error">
                     <h2>Error Processing Files</h2>
                     <?php foreach ($errors as $error): ?>
                         <p><?php echo htmlspecialchars($error); ?></p>
