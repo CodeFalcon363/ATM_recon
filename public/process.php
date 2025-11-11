@@ -329,10 +329,7 @@ try {
         <?php elseif ($result): ?>
             <div class="result-card">
                 <h1>Reconciliation Results</h1>
-
-                <div class="status-badge status-<?php echo strtolower(str_replace('_', '-', $result->getStatus())); ?>">
-                    <?php echo htmlspecialchars($result->getMessage()); ?>
-                </div>
+                <div class="details-section">
 
                 <?php if ($result->getClosingBalance() !== null): ?>
                 <!-- GL Variance Section (New) -->
@@ -382,7 +379,7 @@ try {
                         <span class="detail-value">₦<?php echo number_format($result->getClosingBalance(), 2); ?></span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label">Available Cash (Last Load Excluded):</span>
+                        <span class="detail-label">Available Cash (Last Load):</span>
                         <span class="detail-value">₦<?php echo number_format($result->getAvailableCash(), 2); ?></span>
                     </div>
                     <div class="detail-row">
@@ -390,11 +387,11 @@ try {
                         <span class="detail-value">₦<?php echo number_format($result->getTransactionsAfterCashCount(), 2); ?></span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label">Expected Cash:</span>
-                        <span class="detail-value">₦<?php echo number_format($result->getExpectedCash(), 2); ?></span>
+                        <span class="detail-label">Actual Cash:</span>
+                        <span class="detail-value">₦<?php echo number_format($result->getactualCash(), 2); ?></span>
                     </div>
                     <div class="detail-row" style="background: <?php echo abs($result->getGLVariance()) < 0.01 ? '#e8f5e9' : '#fef3cd'; ?>; padding: 15px; margin-top: 10px; border-radius: 8px;">
-                        <span class="detail-label" style="font-size: 16px;"><strong>Variance (GL Balance - Expected Cash):</strong></span>
+                        <span class="detail-label" style="font-size: 16px;"><strong>Variance (GL Balance - Actual Cash):</strong></span>
                         <span class="detail-value" style="font-size: 18px; color: <?php
                             if (abs($result->getGLVariance()) < 0.01) {
                                 echo '#28a745';
@@ -409,6 +406,10 @@ try {
                     </div>
                 </div>
                 <?php endif; ?>
+
+                <div class="status-badge status-<?php echo strtolower(str_replace('_', '-', $result->getStatus())); ?>">
+                    <?php echo htmlspecialchars($result->getMessage()); ?>
+                </div>
 
                 <!-- Load to Load Reconciliation -->
                 <div class="info-grid">

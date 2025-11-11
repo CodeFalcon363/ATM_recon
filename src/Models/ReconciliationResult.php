@@ -22,7 +22,7 @@ class ReconciliationResult
     private $excludedLastLoad;
     private $closingBalance;
     private $transactionsAfterCashCount;
-    private $expectedCash;
+    private $actualCash;
     private $glVariance;
     private $glVarianceStatus;
 
@@ -54,12 +54,12 @@ class ReconciliationResult
         $this->transactionsAfterCashCount = $transactionsAfterCashCount ?? 0.0;
 
         // Calculate variance metrics
-        // Expected Cash = Available Cash (excludedLastLoad) - Transactions After Cash Count
+        // Actual Cash = Available Cash (excludedLastLoad) - Transactions After Cash Count
         $availableCash = $excludedLastLoad ?? 0.0;
-        $this->expectedCash = $availableCash - $this->transactionsAfterCashCount;
+        $this->actualCash = $availableCash - $this->transactionsAfterCashCount;
 
-        // GL Variance = GL Balance - Expected Cash
-        $this->glVariance = ($closingBalance ?? 0.0) - $this->expectedCash;
+        // GL Variance = GL Balance - Actual Cash
+        $this->glVariance = ($closingBalance ?? 0.0) - $this->actualCash;
 
         // Determine GL variance status
         $this->determineGLVarianceStatus();
@@ -70,13 +70,13 @@ class ReconciliationResult
     
     private function determineGLVarianceStatus(): void
     {
-        // GL Variance Status based on GL Balance vs Expected Cash
+        // GL Variance Status based on GL Balance vs Actual Cash
         if (abs($this->glVariance) < 0.01) {
             $this->glVarianceStatus = 'GL IS BALANCED';
         } elseif ($this->glVariance > 0) {
-            $this->glVarianceStatus = 'OVERAGE - POSSIBLE OUTSTANDING ITEM';
-        } else {
             $this->glVarianceStatus = 'SHORTAGE - POSSIBLE OUTSTANDING ITEM';
+        } else {
+            $this->glVarianceStatus = 'OVERAGE - POSSIBLE OUTSTANDING ITEM';
         }
     }
 
@@ -169,9 +169,9 @@ class ReconciliationResult
         return $this->transactionsAfterCashCount;
     }
 
-    public function getExpectedCash(): float
+    public function getactualCash(): float
     {
-        return $this->expectedCash;
+        return $this->actualCash;
     }
 
     public function getGLVariance(): float
@@ -209,7 +209,7 @@ class ReconciliationResult
             'closing_balance' => $this->closingBalance,
             'available_cash' => $this->getAvailableCash(),
             'transactions_after_cash_count' => $this->transactionsAfterCashCount,
-            'expected_cash' => $this->expectedCash,
+            'expected_cash' => $this->actualCash,
             'gl_variance' => $this->glVariance,
             'gl_variance_status' => $this->glVarianceStatus
         ];
